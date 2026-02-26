@@ -16,6 +16,18 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+# runtime configuration object (mutable) separate from settings
+class NotificationRuntimeConfig:
+    telegram_token: Optional[str] = None
+    telegram_chat_ids: Optional[List[str]] = None
+    email_to: Optional[List[str]] = None
+    sendgrid_key: Optional[str] = None
+    twilio_sid: Optional[str] = None
+    whatsapp_numbers: Optional[List[str]] = None
+
+runtime_config = NotificationRuntimeConfig()
+
+
 class NotificationManager:
     """Gerenciador centralizado de notificações"""
     
@@ -69,22 +81,24 @@ class TelegramNotifier:
     """Notificador via Telegram"""
     
     def __init__(self):
-        self.bot_token = settings.TELEGRAM_BOT_TOKEN
-        self.chat_ids = settings.get_telegram_chat_ids()  # Converter string em lista
-        self.bot = Bot(token=self.bot_token) if self.bot_token else None
-    
+        # initialization only sets up placeholders; actual tokens
+        # are retrieved each time send_alert is called so runtime
+        # configuration changes take effect immediately.
+        self.bot = None
+
     async def send_alert(self, alert: Dict) -> Dict:
-        """Envia alerta via Telegram"""
-        if not self.bot_token or not self.chat_ids:
+        bot_token = runtime_config.telegram_token or settings.TELEGRAM_BOT_TOKEN
+        chat_ids = runtime_config.telegram_chat_ids or settings.get_telegram_chat_ids()
+        if not bot_token or not chat_ids:
             return {
                 'status': 'skipped',
                 'reason': 'Telegram não configurado'
             }
-        
+        # lazy-initialize bot with current token
+        self.bot = Bot(token=bot_token)
         try:
             message = self._format_message(alert)
-            
-            for chat_id in self.chat_ids:
+            for chat_id in chat_ids:
                 try:
                     await self.bot.send_message(
                         chat_id=chat_id,
@@ -93,12 +107,11 @@ class TelegramNotifier:
                     )
                 except TelegramError as e:
                     logger.error(f"Erro ao enviar para {chat_id}: {str(e)}")
-            
-            return {'status': 'success', 'count': len(self.chat_ids)}
-        
+            return {'status': 'success', 'count': len(chat_ids)}
         except Exception as e:
             logger.error(f"Erro TelegramNotifier: {str(e)}")
             return {'status': 'error', 'message': str(e)}
+    
     
     def _format_message(self, alert: Dict) -> str:
         """Formata mensagem para Telegram"""
@@ -131,10 +144,35 @@ class EmailNotifier:
     """Notificador via Email (SendGrid)"""
     
     def __init__(self):
-        self.api_key = settings.SENDGRID_API_KEY
-        self.from_email = settings.EMAIL_FROM
-        self.to_addresses = settings.get_email_to_addresses()  # Converter string em lista
-        self.client = SendGridAPIClient(self.api_key) if self.api_key else None
+        self.client = None
+
+    async def send_alert(self, alert: Dict) -> Dict:
+        api_key = runtime_config.sendgrid_key or settings.SENDGRID_API_KEY
+        from_email = settings.EMAIL_FROM
+        to_addresses = runtime_config.email_to or settings.get_email_to_addresses()
+        if not api_key or not to_addresses:
+            return {
+                'status': 'skipped',
+                'reason': 'Email não configurado'
+            }
+        self.client = SendGridAPIClient(api_key)
+        try:
+            subject, html_content = self._format_email(alert)
+            for to_email in to_addresses:
+                message = Mail(
+                    from_email=Email(from_email),
+                    to_emails=To(to_email),
+                    subject=subject,
+                    html_content=html_content
+                )
+                try:
+                    self.client.send(message)
+                except Exception as e:
+                    logger.error(f"Erro ao enviar email para {to_email}: {str(e)}")
+            return {'status': 'success', 'count': len(to_addresses)}
+        except Exception as e:
+            logger.error(f"Erro EmailNotifier: {str(e)}")
+            return {'status': 'error', 'message': str(e)}
     
     async def send_alert(self, alert: Dict) -> Dict:
         """Envia alerta via Email"""
@@ -203,36 +241,31 @@ class WhatsAppNotifier:
     """Notificador via WhatsApp (Twilio)"""
     
     def __init__(self):
-        self.account_sid = settings.TWILIO_ACCOUNT_SID
-        self.auth_token = settings.TWILIO_AUTH_TOKEN
-        self.from_number = settings.TWILIO_PHONE_NUMBER
-        self.to_numbers = settings.get_whatsapp_numbers()  # Converter string em lista
-        self.client = Client(self.account_sid, self.auth_token) \
-            if self.account_sid and self.auth_token else None
-    
+        self.client = None
+
     async def send_alert(self, alert: Dict) -> Dict:
-        """Envia alerta via WhatsApp"""
-        if not self.account_sid or not self.to_numbers:
+        account_sid = runtime_config.twilio_sid or settings.TWILIO_ACCOUNT_SID
+        auth_token = settings.TWILIO_AUTH_TOKEN
+        from_number = settings.TWILIO_PHONE_NUMBER
+        to_numbers = runtime_config.whatsapp_numbers or settings.get_whatsapp_numbers()
+        if not account_sid or not auth_token or not from_number or not to_numbers:
             return {
                 'status': 'skipped',
                 'reason': 'WhatsApp não configurado'
             }
-        
+        self.client = Client(account_sid, auth_token)
         try:
             message_text = self._format_message(alert)
-            
-            for to_number in self.to_numbers:
+            for to_number in to_numbers:
                 try:
                     self.client.messages.create(
-                        from_=f"whatsapp:{self.from_number}",
+                        from_=f"whatsapp:{from_number}",
                         to=f"whatsapp:{to_number}",
                         body=message_text
                     )
                 except Exception as e:
                     logger.error(f"Erro ao enviar WhatsApp para {to_number}: {str(e)}")
-            
-            return {'status': 'success', 'count': len(self.to_numbers)}
-        
+            return {'status': 'success', 'count': len(to_numbers)}
         except Exception as e:
             logger.error(f"Erro WhatsAppNotifier: {str(e)}")
             return {'status': 'error', 'message': str(e)}

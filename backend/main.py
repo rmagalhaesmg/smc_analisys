@@ -4,7 +4,7 @@ Integra todos os módulos: SMC, Notificações, Ingestão de Dados, IA/ML
 """
 import asyncio
 import logging
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
@@ -20,6 +20,8 @@ from app.ai_ml import llm_analyzer, ml_engine, signal_refinement
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+from app.notifications.manager import notification_config
 
 # Criar aplicação FastAPI
 app = FastAPI(
@@ -75,6 +77,11 @@ class SMCAnalyzer:
                 abs(low - self.buffer_candles[-1]['close']) if self.buffer_candles else 0
             )
             
+            # Validar ordem temporal do candle para evitar ruptura do TR
+            if self.buffer_candles and candle.get('timestamp') <= self.buffer_candles[-1].get('timestamp'):
+                # candle fora de ordem; ignorar
+                return {'status': 'ignored', 'reason': 'candle out of sequence'}
+
             # Adicionar ao buffer
             self.buffer_candles.append(candle)
             if len(self.buffer_candles) > 100:
@@ -120,8 +127,8 @@ class SMCAnalyzer:
                 adjustment = signal_refinement.get_score_adjustment(signal)
                 signal['score'] *= adjustment
             
-            # Análise com LLM se score significativo
-            if signal['score'] > 0.6 and settings.OPENAI_API_KEY:
+            # Análise com LLM se score significativo (score está em 0–100, não 0–1)
+            if signal['score'] > 60 and settings.OPENAI_API_KEY:
                 llm_analysis = await llm_analyzer.analyze_signal({
                     **signal,
                     'details': self._format_signal_details(
@@ -134,7 +141,8 @@ class SMCAnalyzer:
             self.signals_history.append(signal)
             ml_engine.add_signal(signal)
             
-            if signal['alert'] and signal['score'] > 0.5:
+            # alert threshold uses 0–100 scale
+            if signal['alert'] and signal['score'] > 50:
                 await self._send_alert(signal)
             
             return signal
@@ -281,13 +289,14 @@ async def analyze_candle(candle: Dict):
 
 
 @app.post("/data/upload-csv")
-async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = Depends()):
     """Faz upload e processa arquivo CSV"""
     try:
-        # Salvar arquivo temporário
-        temp_path = f"/tmp/{file.filename}"
-        with open(temp_path, "wb") as buffer:
-            buffer.write(await file.read())
+        # Salvar arquivo temporário de maneira portátil
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(await file.read())
+            temp_path = tmp.name
         
         # Ingerir dados
         ingestion_result = await data_ingestion_manager.ingest_csv(temp_path)
@@ -296,11 +305,10 @@ async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundT
             candles = ingestion_result['data']
             
             # Processar candles em background
-            if background_tasks:
-                background_tasks.add_task(
-                    _process_candles_batch,
-                    candles
-                )
+            background_tasks.add_task(
+                _process_candles_batch,
+                candles
+            )
             
             return {
                 'status': 'success',
@@ -336,46 +344,34 @@ async def api_stream(endpoint: str, params: Dict = None):
 
 @app.post("/notifications/configure")
 async def configure_notifications(config: Dict):
-    """Configura canais de notificação"""
+    """Configura canais de notificação em runtime
+    Nota: não muta 'settings', usa um objeto dedicado.
+    """
     try:
-        # Atualizar configurações
+        # Telegram
         if 'telegram_token' in config:
-            settings.TELEGRAM_BOT_TOKEN = config['telegram_token']
-        
+            notification_config.telegram_token = config['telegram_token']
         if 'telegram_chat_ids' in config:
-            # Converter lista em string com vírgula separada
             ids = config['telegram_chat_ids']
-            if isinstance(ids, list):
-                settings.TELEGRAM_CHAT_IDS = ",".join(str(id) for id in ids)
-            else:
-                settings.TELEGRAM_CHAT_IDS = str(ids)
+            notification_config.telegram_chat_ids = ids if isinstance(ids, list) else [ids]
         
+        # Email
         if 'email_to' in config:
-            # Converter lista em string com vírgula separada
             emails = config['email_to']
-            if isinstance(emails, list):
-                settings.EMAIL_TO_ADDRESSES = ",".join(emails)
-            else:
-                settings.EMAIL_TO_ADDRESSES = str(emails)
-        
+            notification_config.email_to = emails if isinstance(emails, list) else [emails]
         if 'sendgrid_key' in config:
-            settings.SENDGRID_API_KEY = config['sendgrid_key']
+            notification_config.sendgrid_key = config['sendgrid_key']
         
-        # WhatsApp
+        # WhatsApp / Twilio
         if 'twilio_sid' in config:
-            settings.TWILIO_ACCOUNT_SID = config['twilio_sid']
-        
+            notification_config.twilio_sid = config['twilio_sid']
         if 'whatsapp_numbers' in config:
-            # Converter lista em string com vírgula separada
             numbers = config['whatsapp_numbers']
-            if isinstance(numbers, list):
-                settings.WHATSAPP_NUMBERS = ",".join(numbers)
-            else:
-                settings.WHATSAPP_NUMBERS = str(numbers)
+            notification_config.whatsapp_numbers = numbers if isinstance(numbers, list) else [numbers]
         
         return {
             'status': 'success',
-            'message': 'Configurações de notificação atualizadas'
+            'message': 'Configurações de notificação atualizadas (runtime)'
         }
     
     except Exception as e:
