@@ -25,7 +25,7 @@ class NotificationRuntimeConfig:
     twilio_sid: Optional[str] = None
     whatsapp_numbers: Optional[List[str]] = None
 
-runtime_config = NotificationRuntimeConfig()
+notification_config = NotificationRuntimeConfig()
 
 
 class NotificationManager:
@@ -87,8 +87,8 @@ class TelegramNotifier:
         self.bot = None
 
     async def send_alert(self, alert: Dict) -> Dict:
-        bot_token = runtime_config.telegram_token or settings.TELEGRAM_BOT_TOKEN
-        chat_ids = runtime_config.telegram_chat_ids or settings.get_telegram_chat_ids()
+        bot_token = notification_config.telegram_token or settings.TELEGRAM_BOT_TOKEN
+        chat_ids = notification_config.telegram_chat_ids or settings.get_telegram_chat_ids()
         if not bot_token or not chat_ids:
             return {
                 'status': 'skipped',
@@ -144,12 +144,14 @@ class EmailNotifier:
     """Notificador via Email (SendGrid)"""
     
     def __init__(self):
+        # email-specific attributes are only created at send time
         self.client = None
 
     async def send_alert(self, alert: Dict) -> Dict:
-        api_key = runtime_config.sendgrid_key or settings.SENDGRID_API_KEY
+        """Envia alerta via Email usando configuração dinâmica"""
+        api_key = notification_config.sendgrid_key or settings.SENDGRID_API_KEY
         from_email = settings.EMAIL_FROM
-        to_addresses = runtime_config.email_to or settings.get_email_to_addresses()
+        to_addresses = notification_config.email_to or settings.get_email_to_addresses()
         if not api_key or not to_addresses:
             return {
                 'status': 'skipped',
@@ -170,36 +172,6 @@ class EmailNotifier:
                 except Exception as e:
                     logger.error(f"Erro ao enviar email para {to_email}: {str(e)}")
             return {'status': 'success', 'count': len(to_addresses)}
-        except Exception as e:
-            logger.error(f"Erro EmailNotifier: {str(e)}")
-            return {'status': 'error', 'message': str(e)}
-    
-    async def send_alert(self, alert: Dict) -> Dict:
-        """Envia alerta via Email"""
-        if not self.api_key or not self.to_addresses:
-            return {
-                'status': 'skipped',
-                'reason': 'Email não configurado'
-            }
-        
-        try:
-            subject, html_content = self._format_email(alert)
-            
-            for to_email in self.to_addresses:
-                message = Mail(
-                    from_email=Email(self.from_email),
-                    to_emails=To(to_email),
-                    subject=subject,
-                    html_content=html_content
-                )
-                
-                try:
-                    response = self.client.send(message)
-                except Exception as e:
-                    logger.error(f"Erro ao enviar email para {to_email}: {str(e)}")
-            
-            return {'status': 'success', 'count': len(self.to_addresses)}
-        
         except Exception as e:
             logger.error(f"Erro EmailNotifier: {str(e)}")
             return {'status': 'error', 'message': str(e)}
@@ -244,10 +216,10 @@ class WhatsAppNotifier:
         self.client = None
 
     async def send_alert(self, alert: Dict) -> Dict:
-        account_sid = runtime_config.twilio_sid or settings.TWILIO_ACCOUNT_SID
+        account_sid = notification_config.twilio_sid or settings.TWILIO_ACCOUNT_SID
         auth_token = settings.TWILIO_AUTH_TOKEN
         from_number = settings.TWILIO_PHONE_NUMBER
-        to_numbers = runtime_config.whatsapp_numbers or settings.get_whatsapp_numbers()
+        to_numbers = notification_config.whatsapp_numbers or settings.get_whatsapp_numbers()
         if not account_sid or not auth_token or not from_number or not to_numbers:
             return {
                 'status': 'skipped',
