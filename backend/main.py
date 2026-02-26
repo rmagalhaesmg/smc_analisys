@@ -7,6 +7,7 @@ import logging
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Dict, Optional
 
@@ -46,13 +47,32 @@ sda = SDAModule()
 mtv = MTVModule()
 
 
+# Modelo Pydantic para validação de candles
+class Candle(BaseModel):
+    timestamp: str = Field(..., description="HH:MM or ISO string")
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    aggression_buy: Optional[float] = 0
+    aggression_sell: Optional[float] = 0
+    trades: Optional[int] = 0
+
+    class Config:
+        extra = "ignore"
+
+
 class SMCAnalyzer:
     """Analisador integrado SMC"""
     
+    MAX_SIGNALS = 5000
+
     def __init__(self):
         self.buffer_candles: List[Dict] = []
         self.signals_history: List[Dict] = []
         self.mtv_cache: Dict = {}
+        self.lock = asyncio.Lock()
 
     def _normalize_ts(self, ts) -> int:
         """Converte timestamp string (HH:MM) para inteiro para comparação"""
@@ -64,6 +84,8 @@ class SMCAnalyzer:
             return 0
     
     async def process_candle(self, candle: Dict) -> Dict:
+        # proteger estado do analisador contra concorrência
+        async with self.lock:
         """
         Processa um candle completo com todos os módulos SMC
         """
@@ -151,6 +173,9 @@ class SMCAnalyzer:
             
             # Adicionar ao histórico e gerar alerta se necessário
             self.signals_history.append(signal)
+            # limitar tamanho do histórico de sinais
+            if len(self.signals_history) > self.MAX_SIGNALS:
+                self.signals_history.pop(0)
             ml_engine.add_signal(signal)
             
             # alert threshold uses 0–100 scale
@@ -305,14 +330,16 @@ async def health_check():
 
 
 @app.post("/analyze/candle")
-async def analyze_candle(candle: Dict):
+async def analyze_candle(candle: Candle):
     """Analisa um candle individual"""
-    result = await analyzer.process_candle(candle)
+    result = await analyzer.process_candle(candle.dict())
     return result
 
 
 @app.post("/data/upload-csv")
-async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()):
+async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    if background_tasks is None:
+        background_tasks = BackgroundTasks()
     """Faz upload e processa arquivo CSV"""
     try:
         # Salvar arquivo temporário de maneira portátil
