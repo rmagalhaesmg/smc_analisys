@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smc-analysis"
+version = "0.1.0"
+description = "Backend for SMC Analysis"
+authors = [
+    { name = "Your Name", email = "you@example.com" }
+]
+# The requirements are maintained in requirements.txt; the CI installs from there.
+# You can also add core dependencies here for pip install -e .
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "python-dotenv"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/rmagalhaesmg/smc_analisys"
