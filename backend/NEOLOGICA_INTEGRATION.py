@@ -77,7 +77,14 @@ class NeologicaAPIIntegration:
                 if response.status == 200:
                     async for line in response.content:
                         if line:
-                            data = json.loads(line)
+                            try:
+                                # response.content yields bytes, decode to str
+                                text = line.decode('utf-8') if isinstance(line, (bytes, bytearray)) else line
+                                data = json.loads(text)
+                            except Exception as e:
+                                # malformed JSON (bad unicode escape etc.) – skip
+                                print(f"ignoring malformed stream line: {e}")
+                                continue
                             candle = self._format_candle(data, data.get('ticker'))
                             await callback(candle)
         
