@@ -11,8 +11,12 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Dict, Optional
 
-# prometheus metrics
-from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
+# prometheus metrics (optional)
+try:
+    from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
+except ImportError:
+    Counter = Gauge = generate_latest = CONTENT_TYPE_LATEST = None
+
 
 from app.config import settings
 from app.modules import HFZModule, FBIModule, DTMModule, SDAModule, MTVModule
@@ -52,10 +56,13 @@ mtv = MTVModule()
 # fila de processamento de candles
 candle_queue: asyncio.Queue = asyncio.Queue()
 
-# métricas Prometheus
-REQUEST_COUNT = Counter('smc_requests_total', 'Total HTTP requests', ['method','endpoint'])
-CANDLES_PROCESSED = Counter('smc_candles_processed_total', 'Candles processados com sucesso')
-QUEUE_SIZE = Gauge('smc_candle_queue_size', 'Tamanho atual da fila de candles')
+# métricas Prometheus (se disponível)
+if Counter:
+    REQUEST_COUNT = Counter('smc_requests_total', 'Total HTTP requests', ['method','endpoint'])
+    CANDLES_PROCESSED = Counter('smc_candles_processed_total', 'Candles processados com sucesso')
+    QUEUE_SIZE = Gauge('smc_candle_queue_size', 'Tamanho atual da fila de candles')
+else:
+    REQUEST_COUNT = CANDLES_PROCESSED = QUEUE_SIZE = None
 
 
 # Modelo Pydantic para validação de candles
@@ -110,109 +117,109 @@ class SMCAnalyzer:
             return 0
     
     async def process_candle(self, candle: Dict) -> Dict:
-        # proteger estado do analisador contra concorrência
-        async with self.lock:
         """
         Processa um candle completo com todos os módulos SMC
         """
-        try:
-            # Extrair dados do candle
-            high = candle.get('high', 0)
-            low = candle.get('low', 0)
-            open_ = candle.get('open', 0)
-            close = candle.get('close', 0)
-            volume = candle.get('volume', 0)
-            agg_buy = candle.get('aggression_buy', 0)
-            agg_sell = candle.get('aggression_sell', 0)
-            trades = candle.get('trades', 0)
-            
-            # Calcular True Range (não computar no primeiro candle)
-            if self.buffer_candles:
-                prev_close = self.buffer_candles[-1]['close']
-                tr = max(
-                    high - low,
-                    abs(high - prev_close),
-                    abs(low - prev_close)
-                )
-            else:
-                tr = 0
-            
-            # Validar ordem temporal do candle para evitar ruptura do TR
-            if self.buffer_candles:
-                if self._normalize_ts(candle.get('timestamp')) <= self._normalize_ts(self.buffer_candles[-1].get('timestamp')):
-                    # candle fora de ordem; ignorar
-                    return {'status': 'ignored', 'reason': 'candle out of sequence'}
+        # proteger estado do analisador contra concorrência
+        async with self.lock:
+            try:
+                # Extrair dados do candle
+                high = candle.get('high', 0)
+                low = candle.get('low', 0)
+                open_ = candle.get('open', 0)
+                close = candle.get('close', 0)
+                volume = candle.get('volume', 0)
+                agg_buy = candle.get('aggression_buy', 0)
+                agg_sell = candle.get('aggression_sell', 0)
+                trades = candle.get('trades', 0)
+                
+                # Calcular True Range (não computar no primeiro candle)
+                if self.buffer_candles:
+                    prev_close = self.buffer_candles[-1]['close']
+                    tr = max(
+                        high - low,
+                        abs(high - prev_close),
+                        abs(low - prev_close)
+                    )
+                else:
+                    tr = 0
+                
+                # Validar ordem temporal do candle para evitar ruptura do TR
+                if self.buffer_candles:
+                    if self._normalize_ts(candle.get('timestamp')) <= self._normalize_ts(self.buffer_candles[-1].get('timestamp')):
+                        # candle fora de ordem; ignorar
+                        return {'status': 'ignored', 'reason': 'candle out of sequence'}
 
-            # Adicionar ao buffer
-            self.buffer_candles.append(candle)
-            if len(self.buffer_candles) > 100:
-                self.buffer_candles.pop(0)
+                # Adicionar ao buffer
+                self.buffer_candles.append(candle)
+                if len(self.buffer_candles) > 100:
+                    self.buffer_candles.pop(0)
             
-            # Atualizar históricos
-            hfz.update_history(agg_buy - agg_sell, trades/60, volume)
-            fbi.update_history(high, low, volume)
-            dtm.update_history(close, high, low, volume, trades/60)
-            sda.update_history(close, high, low, volume, tr)
-            mtv.update_history(close, high, low, tr, volume)
+                # Atualizar históricos
+                hfz.update_history(agg_buy - agg_sell, trades/60, volume)
+                fbi.update_history(high, low, volume)
+                dtm.update_history(close, high, low, volume, trades/60)
+                sda.update_history(close, high, low, volume, tr)
+                mtv.update_history(close, high, low, tr, volume)
+                
+                # Executar análises
+                hfz_result = hfz.analyze(
+                    agg_buy, agg_sell, trades, high, low, open_, close, 0.01, 0.01
+                )
+                
+                fbi_result = fbi.analyze(close, high, low, open_, close, volume)
+                
+                dtm_result = dtm.analyze(
+                    volume, high, low, open_, close, hfz_result.hz_normalizado,
+                    hfz_result.tentativa_cont_alta, hfz_result.tentativa_cont_baixa
+                )
+                
+                sda_result = sda.analyze(close, high, low, volume, tr)
             
-            # Executar análises
-            hfz_result = hfz.analyze(
-                agg_buy, agg_sell, trades, high, low, open_, close, 0.01, 0.01
-            )
+                hora_int = int(candle.get('timestamp', '0800').replace(':', '')[-4:])
+                mtv_result = mtv.analyze(
+                    sda_result.regime_mercado, hora_int,
+                    settings.SMC_DEFAULT_PARAMS['tipo_ativo'],
+                    settings.SMC_DEFAULT_PARAMS['tf_base_minutos'],
+                    0.5
+                )
+                
+                # Gerar score final
+                signal = self._generate_signal(
+                    hfz_result, fbi_result, dtm_result, sda_result, mtv_result,
+                    candle, close
+                )
+                
+                # Aplicar refinamento com ML antes da normalização final
+                if ml_engine.model:
+                    # converter para escala -1..1
+                    raw_score = signal['score'] / 50.0 - 1.0
+                    adjustment = signal_refinement.get_score_adjustment(signal)
+                    raw_score *= adjustment
+                    signal['score'] = (raw_score + 1.0) * 50.0
+                
+                # Análise com LLM se score significativo (será executada em background)
+                if signal['score'] > 60 and settings.OPENAI_API_KEY:
+                    # não aguardar; anexo resultado posterior
+                    asyncio.create_task(self._analyze_llm(signal, 
+                        hfz_result, fbi_result, dtm_result, sda_result, mtv_result))
+                
+                # Adicionar ao histórico e gerar alerta se necessário
+                self.signals_history.append(signal)
+                # limitar tamanho do histórico de sinais
+                if len(self.signals_history) > self.MAX_SIGNALS:
+                    self.signals_history.pop(0)
+                ml_engine.add_signal(signal)
+                
+                # alert threshold uses 0–100 scale
+                if signal['alert'] and signal['score'] > 50:
+                    await self._send_alert(signal)
+                
+                    return signal
             
-            fbi_result = fbi.analyze(close, high, low, open_, close, volume)
-            
-            dtm_result = dtm.analyze(
-                volume, high, low, open_, close, hfz_result.hz_normalizado,
-                hfz_result.tentativa_cont_alta, hfz_result.tentativa_cont_baixa
-            )
-            
-            sda_result = sda.analyze(close, high, low, volume, tr)
-            
-            hora_int = int(candle.get('timestamp', '0800').replace(':', '')[-4:])
-            mtv_result = mtv.analyze(
-                sda_result.regime_mercado, hora_int,
-                settings.SMC_DEFAULT_PARAMS['tipo_ativo'],
-                settings.SMC_DEFAULT_PARAMS['tf_base_minutos'],
-                0.5
-            )
-            
-            # Gerar score final
-            signal = self._generate_signal(
-                hfz_result, fbi_result, dtm_result, sda_result, mtv_result,
-                candle, close
-            )
-            
-            # Aplicar refinamento com ML antes da normalização final
-            if ml_engine.model:
-                # converter para escala -1..1
-                raw_score = signal['score'] / 50.0 - 1.0
-                adjustment = signal_refinement.get_score_adjustment(signal)
-                raw_score *= adjustment
-                signal['score'] = (raw_score + 1.0) * 50.0
-            
-            # Análise com LLM se score significativo (será executada em background)
-            if signal['score'] > 60 and settings.OPENAI_API_KEY:
-                # não aguardar; anexo resultado posterior
-                asyncio.create_task(self._analyze_llm(signal, 
-                    hfz_result, fbi_result, dtm_result, sda_result, mtv_result))
-            
-            # Adicionar ao histórico e gerar alerta se necessário
-            self.signals_history.append(signal)
-            # limitar tamanho do histórico de sinais
-            if len(self.signals_history) > self.MAX_SIGNALS:
-                self.signals_history.pop(0)
-            ml_engine.add_signal(signal)
-            
-            # alert threshold uses 0–100 scale
-            if signal['alert'] and signal['score'] > 50:
-                await self._send_alert(signal)
-            
-            return signal
-        
-        except Exception as e:
-            logger.error(f"Erro ao processar candle: {str(e)}")
-            return {'status': 'error', 'message': str(e)}
+            except Exception as e:
+                logger.error(f"Erro ao processar candle: {str(e)}")
+                return {'status': 'error', 'message': str(e)}
 
     async def _analyze_llm(self, signal: Dict, hfz, fbi, dtm, sda, mtv) -> None:
         """Helper that runs LLM analysis without blocking the main flow"""
@@ -331,7 +338,9 @@ analyzer = SMCAnalyzer()
 
 @app.middleware("http")
 async def prom_middleware(request, call_next):
-    REQUEST_COUNT.labels(request.method, request.url.path).inc()
+    # increment counter with method and path labels if metrics enabled
+    if REQUEST_COUNT:
+        REQUEST_COUNT.labels(request.method, request.url.path).inc()
     response = await call_next(request)
     return response
 
@@ -346,9 +355,11 @@ async def root():
 
 @app.get("/metrics")
 async def metrics():
-    """Endpoint de métricas Prometheus"""
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
+    """Prometheus metrics endpoint (no-op if lib unavailable)"""
+    if not generate_latest:
+        return JSONResponse(status_code=501, content={"error": "metrics not available"})
+    data = generate_latest()
+    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 @app.get("/health")
 async def health_check():
@@ -370,7 +381,8 @@ async def health_check():
 async def analyze_candle(candle: Candle):
     """Enfileira candle para processamento (não bloqueante)"""
     await candle_queue.put(candle.dict())
-    QUEUE_SIZE.set(candle_queue.qsize())
+    if QUEUE_SIZE:
+        QUEUE_SIZE.set(candle_queue.qsize())
     return {"status": "queued"}
 
 
@@ -536,7 +548,8 @@ async def _process_candles_batch(candles: List[Dict]) -> None:
     """Enfileira lote de candles para processamento"""
     for candle in candles:
         await candle_queue.put(candle)
-        QUEUE_SIZE.set(candle_queue.qsize())
+        if QUEUE_SIZE:
+            QUEUE_SIZE.set(candle_queue.qsize())
 
 
 @app.on_event("startup")
@@ -565,12 +578,14 @@ async def candle_worker():
         candle = await candle_queue.get()
         try:
             await analyzer.process_candle(candle)
-            CANDLES_PROCESSED.inc()
+            if CANDLES_PROCESSED:
+                CANDLES_PROCESSED.inc()
         except Exception as e:
             logger.error(f"Erro no candle_worker: {str(e)}")
         finally:
             candle_queue.task_done()
-            QUEUE_SIZE.set(candle_queue.qsize())
+            if QUEUE_SIZE:
+                QUEUE_SIZE.set(candle_queue.qsize())
 
 
 if __name__ == "__main__":
