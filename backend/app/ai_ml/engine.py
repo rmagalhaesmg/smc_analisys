@@ -138,11 +138,15 @@ class MachineLearningEngine:
         self.model = None
     
     def add_signal(self, signal: Dict) -> None:
-        """Adiciona sinal ao histórico"""
+        """Adiciona sinal ao histórico (com tamanho limitado)"""
         self.historical_signals.append({
             'timestamp': datetime.now().isoformat(),
             **signal
         })
+        # manter buffer de tamanho limitado para evitar consumo infinito
+        max_history = 5000
+        if len(self.historical_signals) > max_history:
+            self.historical_signals.pop(0)
     
     def add_outcome(self, signal_id: str, outcome: Dict) -> None:
         """Adiciona resultado de sinal"""
@@ -151,6 +155,10 @@ class MachineLearningEngine:
             'timestamp': datetime.now().isoformat(),
             **outcome
         })
+        # opcional: limitar histórico de outcomes
+        max_outcomes = 5000
+        if len(self.signal_outcomes) > max_outcomes:
+            self.signal_outcomes.pop(0)
     
     def extract_features(self, signal: Dict) -> np.ndarray:
         """Extrai features de um sinal para ML"""

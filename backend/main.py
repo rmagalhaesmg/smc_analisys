@@ -4,12 +4,11 @@ Integra todos os módulos: SMC, Notificações, Ingestão de Dados, IA/ML
 """
 import asyncio
 import logging
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Depends
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from typing import List, Dict, Optional
-import numpy as np
 
 from app.config import settings
 from app.modules import HFZModule, FBIModule, DTMModule, SDAModule, MTVModule
@@ -54,6 +53,15 @@ class SMCAnalyzer:
         self.buffer_candles: List[Dict] = []
         self.signals_history: List[Dict] = []
         self.mtv_cache: Dict = {}
+
+    def _normalize_ts(self, ts) -> int:
+        """Converte timestamp string (HH:MM) para inteiro para comparação"""
+        if isinstance(ts, str):
+            return int(ts.replace(':', '').strip()) if ts else 0
+        try:
+            return int(ts)
+        except Exception:
+            return 0
     
     async def process_candle(self, candle: Dict) -> Dict:
         """
@@ -70,17 +78,22 @@ class SMCAnalyzer:
             agg_sell = candle.get('aggression_sell', 0)
             trades = candle.get('trades', 0)
             
-            # Calcular True Range
-            tr = max(
-                high - low,
-                abs(high - self.buffer_candles[-1]['close']) if self.buffer_candles else 0,
-                abs(low - self.buffer_candles[-1]['close']) if self.buffer_candles else 0
-            )
+            # Calcular True Range (não computar no primeiro candle)
+            if self.buffer_candles:
+                prev_close = self.buffer_candles[-1]['close']
+                tr = max(
+                    high - low,
+                    abs(high - prev_close),
+                    abs(low - prev_close)
+                )
+            else:
+                tr = 0
             
             # Validar ordem temporal do candle para evitar ruptura do TR
-            if self.buffer_candles and candle.get('timestamp') <= self.buffer_candles[-1].get('timestamp'):
-                # candle fora de ordem; ignorar
-                return {'status': 'ignored', 'reason': 'candle out of sequence'}
+            if self.buffer_candles:
+                if self._normalize_ts(candle.get('timestamp')) <= self._normalize_ts(self.buffer_candles[-1].get('timestamp')):
+                    # candle fora de ordem; ignorar
+                    return {'status': 'ignored', 'reason': 'candle out of sequence'}
 
             # Adicionar ao buffer
             self.buffer_candles.append(candle)
@@ -122,20 +135,19 @@ class SMCAnalyzer:
                 candle, close
             )
             
-            # Aplicar refinamento com ML
+            # Aplicar refinamento com ML antes da normalização final
             if ml_engine.model:
+                # converter para escala -1..1
+                raw_score = signal['score'] / 50.0 - 1.0
                 adjustment = signal_refinement.get_score_adjustment(signal)
-                signal['score'] *= adjustment
+                raw_score *= adjustment
+                signal['score'] = (raw_score + 1.0) * 50.0
             
-            # Análise com LLM se score significativo (score está em 0–100, não 0–1)
+            # Análise com LLM se score significativo (será executada em background)
             if signal['score'] > 60 and settings.OPENAI_API_KEY:
-                llm_analysis = await llm_analyzer.analyze_signal({
-                    **signal,
-                    'details': self._format_signal_details(
-                        hfz_result, fbi_result, dtm_result, sda_result, mtv_result
-                    )
-                })
-                signal['llm_analysis'] = llm_analysis
+                # não aguardar; anexo resultado posterior
+                asyncio.create_task(self._analyze_llm(signal, 
+                    hfz_result, fbi_result, dtm_result, sda_result, mtv_result))
             
             # Adicionar ao histórico e gerar alerta se necessário
             self.signals_history.append(signal)
@@ -150,6 +162,17 @@ class SMCAnalyzer:
         except Exception as e:
             logger.error(f"Erro ao processar candle: {str(e)}")
             return {'status': 'error', 'message': str(e)}
+
+    async def _analyze_llm(self, signal: Dict, hfz, fbi, dtm, sda, mtv) -> None:
+        """Helper that runs LLM analysis without blocking the main flow"""
+        try:
+            llm_analysis = await llm_analyzer.analyze_signal({
+                **signal,
+                'details': self._format_signal_details(hfz, fbi, dtm, sda, mtv)
+            })
+            signal['llm_analysis'] = llm_analysis
+        except Exception as e:
+            logger.error(f"Erro em _analyze_llm: {str(e)}")
     
     def _generate_signal(self, hfz, fbi, dtm, sda, mtv, candle, price) -> Dict:
         """Gera sinal consolidado de todos os módulos"""
@@ -289,7 +312,7 @@ async def analyze_candle(candle: Dict):
 
 
 @app.post("/data/upload-csv")
-async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = Depends()):
+async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()):
     """Faz upload e processa arquivo CSV"""
     try:
         # Salvar arquivo temporário de maneira portátil
