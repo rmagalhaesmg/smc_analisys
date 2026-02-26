@@ -19,7 +19,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          flake8 backend || true
       - name: Run unit tests
         run: |
           cd backend
           python -m pytest -q
+      - name: Build package (optional)
+        run: |
+          python -m pip install build
+          python -m build --sdist --wheel || true
+      - name: Build Docker image
+        run: |
+          docker build -t smc-analysis:ci . || true

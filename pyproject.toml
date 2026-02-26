@@ -9,13 +9,27 @@ description = "Backend for SMC Analysis"
 authors = [
     { name = "Your Name", email = "you@example.com" }
 ]
-# The requirements are maintained in requirements.txt; the CI installs from there.
-# You can also add core dependencies here for pip install -e .
+license = { text = "MIT" }
+readme = "README.md"
+keywords = ["smc", "analysis", "fastapi"]
+classifiers = [
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+# core dependencies
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic",
     "python-dotenv"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "requests",
+    "flake8"
 ]
 
 [project.urls]
