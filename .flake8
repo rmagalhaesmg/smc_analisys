@@ -1,0 +1,3 @@
+[flake8]
+max-line-length = 88
+exclude = __pycache__,.git,env,venv,backend/__pycache__,backend/tests/__pycache__
