@@ -1,0 +1,17 @@
+Analysis Summary
+================================================================================
+File: example_data.csv
+Analyzed: 30 candles
+Date: 2026-02-26 15:41:11
+
+Score Statistics:
+  Min: 56.24
+  Max: 79.15
+  Avg: 68.06
+
+Indicator Averages:
+  HFZ: 54.23
+  FBI: 73.28
+  DTM: 61.84
+  SDA: 53.52
+  MTV: 26.60

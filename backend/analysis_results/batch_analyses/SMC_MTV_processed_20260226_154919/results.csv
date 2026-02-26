@@ -1,0 +1,3 @@
+timestamp,open,high,low,close,volume,trades,hfz_score,fbi_score,dtm_score,sda_score,mtv_score,type,score,regime,confidence,session,alert
+2026-02-26 15:47:35,194005.0,195035.0,192170.0,193740.0,595055000000,5284321,35.18077914474924,16.002419744916878,100,100,0,neutral,60.67255363239138,Tendência,0.0,Fora de Horário,False
+2026-02-26 15:47:35,5133.0,5168.5,5123.0,5144.0,120297000000,547899,37.07876869763703,16.000000000000004,100,100,0,neutral,61.431507479054815,Tendência,0.0,Fora de Horário,False

@@ -1,0 +1,28 @@
+[
+  {
+    "status": "error",
+    "message": "invalid literal for int() with base 10: ''",
+    "input": {
+      "timestamp": "",
+      "open": 0.0,
+      "high": 0.0,
+      "low": 0.0,
+      "close": 0.0,
+      "volume": 0,
+      "trades": 0
+    }
+  },
+  {
+    "status": "error",
+    "message": "invalid literal for int() with base 10: ''",
+    "input": {
+      "timestamp": "",
+      "open": 0.0,
+      "high": 0.0,
+      "low": 0.0,
+      "close": 0.0,
+      "volume": 0,
+      "trades": 0
+    }
+  }
+]

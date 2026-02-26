@@ -1,0 +1,18 @@
+PROFIT vs SMC COMPARISON TEMPLATE
+================================================================================
+
+Instructions:
+1. Export the same candles from Profit platform
+2. Fill in the Profit columns with exact scores from Profit
+3. Compare SMC scores against Profit scores
+4. Document any divergences
+
+Format:
+timestamp | Profit HFZ | SMC HFZ | Diff | Profit FBI | SMC FBI | Diff | ...
+
+================================================================================
+
+COMPARISON MATRIX:
+
+Timestamp,Profit_HFZ,SMC_HFZ,HFZ_Diff,Profit_FBI,SMC_FBI,FBI_Diff,Profit_DTM,SMC_DTM,DTM_Diff,Profit_SDA,SMC_SDA,SDA_Diff,Profit_MTV,SMC_MTV,MTV_Diff,Profit_Signal,SMC_Signal,Signal_Match
+

@@ -1,0 +1,12 @@
+Analysis Summary
+================================================================================
+File: SMC_MTV.csv
+Analyzed: 2 candles
+Date: 2026-02-26 15:49:18
+
+Score Statistics:
+  Min: 0.00
+  Max: 0.00
+  Avg: 0.00
+
+Indicator Averages:

@@ -1,0 +1,73 @@
+services:
+  # Main SMC API Service
+  smc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smc-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - PYTHONUNBUFFERED=1
+      # Load from .env file
+      - DATABASE_URL=sqlite:///./smc.db
+      - APP_NAME=SMC - Sistema de Monitoramento Contínuo
+      - APP_VERSION=2.3.0
+    volumes:
+      # Persist database
+      - smc-data:/app/smc.db
+      # Persist uploads
+      - smc-uploads:/app/uploads
+      # Mount .env for configuration (optional)
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - smc-network
+    labels:
+      - "com.example.description=SMC Web App Backend"
+
+  # Optional: PostgreSQL Database (uncomment to use)
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: smc-db
+  #   environment:
+  #     - POSTGRES_DB=smc_db
+  #     - POSTGRES_USER=smc_user
+  #     - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+  #   volumes:
+  #     - smc-postgres:/var/lib/postgresql/data
+  #   networks:
+  #     - smc-network
+  #   restart: unless-stopped
+
+  # Optional: Nginx Reverse Proxy (uncomment to use)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: smc-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - smc-api
+  #   networks:
+  #     - smc-network
+  #   restart: unless-stopped
+
+volumes:
+  smc-data:
+  smc-uploads:
+  # smc-postgres:
+
+networks:
+  smc-network:
+    driver: bridge

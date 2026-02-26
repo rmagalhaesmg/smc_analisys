@@ -1,0 +1,232 @@
+"""
+Quick Start Guide - Bulk Analysis & Profit Validation
+"""
+
+# 1. BULK ANALYSIS - Process Multiple CSV Files
+# ============================================================
+
+# Create an "uploads" folder in backend directory:
+# C:\Users\Usuário\Documents\smc_analysys\backend\uploads\
+
+# Place your CSV files in the uploads folder, then run:
+# 
+# .\venv\Scripts\python.exe bulk_analysis.py
+#
+# This will:
+# - Scan uploads/ for all *.csv files
+# - Send each row to the API for analysis
+# - Generate results in batch_analyses/ subdirectory
+# - Create JSON, CSV, and summary report for each file
+
+
+# 2. EXPORT TO PROFIT FORMAT
+# ============================================================
+
+# After bulk_analysis completes, run:
+#
+# .\venv\Scripts\python.exe profit_exporter.py
+#
+# This will:
+# - Convert all results to Profit-compatible formats
+# - Create profit_format.csv (most compatible)
+# - Create profit_format.json (for integrations)
+# - Create profit_format.tsv (alternative)
+# - Create comparison_template.csv (for manual validation)
+
+
+# 3. COMPARE AGAINST PROFIT
+# ============================================================
+
+# Option A: If you have Profit output file
+# Place Profit's CSV export in analysis_results/ as:
+# - profit_analysis_results.csv
+#
+# Then run:
+# .\venv\Scripts\python.exe compare_profit.py
+#
+# This will:
+# - Auto-compare SMC vs Profit scores
+# - Calculate accuracy percentage
+# - Identify divergences
+# - Generate validation report
+
+
+# Option B: If you don't have Profit output yet
+# Use the comparison_template.csv to manually enter Profit scores
+# Then rename it to profit_analysis_results.csv and run compare_profit.py
+
+
+# FULL WORKFLOW EXAMPLE
+# ============================================================
+
+# Step 1: Prepare data
+mkdir uploads
+# Copy your trading CSVs to uploads/ folder
+
+# Step 2: Run bulk analysis
+.\venv\Scripts\python.exe bulk_analysis.py
+# Expected output:
+# - analysis_results\batch_analyses\filename_YYYYMMdd_HHMMSS\results.csv
+# - analysis_results\batch_analyses\filename_YYYYMMdd_HHMMSS\results.json
+# - analysis_results\batch_analyses\filename_YYYYMMdd_HHMMSS\summary.txt
+
+# Step 3: Export to Profit format
+.\venv\Scripts\python.exe profit_exporter.py
+# Expected output:
+# - profit_format.csv (import to Profit or compare)
+# - profit_format.json
+# - profit_format.tsv
+# - comparison_template.csv
+
+# Step 4: Validate against Profit
+# Option A: Auto-validation (if you have Profit CSV)
+#   - Copy Profit results to analysis_results/profit_analysis_results.csv
+#   - .\venv\Scripts\python.exe compare_profit.py
+
+# Option B: Manual validation
+#   - Open comparison_template.csv
+#   - Fill in Profit scores from your platform
+#   - Save as profit_analysis_results.csv
+#   - .\venv\Scripts\python.exe compare_profit.py
+
+
+# CSV FILE REQUIREMENTS
+# ============================================================
+
+# Your input CSV must have these columns (minimum):
+# - timestamp: Format "YYYY-MM-DD HH:MM:SS"
+# - open: Opening price (float)
+# - high: High price (float)
+# - low: Low price (float)  
+# - close: Closing price (float)
+# - volume: Volume (integer)
+# - trades: Number of trades (integer)
+
+# Optional columns:
+# - aggression_buy: Buy aggression (for HFZ)
+# - aggression_sell: Sell aggression (for HFZ)
+
+# Example:
+# timestamp,open,high,low,close,volume,trades,aggression_buy,aggression_sell
+# 2024-02-26 09:30:00,127850.00,128200.00,127700.00,128100.00,1200000,4850,750000,450000
+# 2024-02-26 09:35:00,128100.00,128550.00,128050.00,128400.00,1450000,5120,800000,650000
+
+
+# OUTPUT STRUCTURE
+# ============================================================
+
+# analysis_results/
+#   ├── smc_analysis_results.csv (first analysis)
+#   ├── smc_analysis_results.json (first analysis)
+#   ├── validation_report.txt (first analysis)
+#   ├── profit_format.csv (Profit import format)
+#   ├── profit_format.json
+#   ├── profit_format.tsv
+#   ├── comparison_template.csv
+#   └── batch_analyses/
+#       ├── filename1_20260226_151800/
+#       │   ├── results.csv
+#       │   ├── results.json
+#       │   ├── summary.txt
+#       │   ├── profit_format.csv
+#       │   ├── profit_format.json
+#       │   ├── profit_format.tsv
+#       │   └── comparison_template.csv
+#       └── filename2_20260226_151900/
+#           └── ...
+
+
+# VALIDATION INTERPRETATION
+# ============================================================
+
+# Accuracy >= 95%: PASSED
+#   All indicators match Profit within 2% tolerance
+#   System is production-ready
+
+# Accuracy 80-95%: REVIEW REQUIRED
+#   Some minor divergences detected
+#   Investigate specific indicators
+#   Minor adjustments may be needed
+
+# Accuracy < 80%: FAILED
+#   Significant divergences
+#   Major investigation required
+#   Do not use for trading until resolved
+
+
+# COMMON ISSUES & SOLUTIONS
+# ============================================================
+
+# Issue: "API health check failed"
+# Solution: Start Docker container
+#   docker-compose up -d
+
+# Issue: CSV parsing error
+# Solution: Verify CSV format
+#   - Check timestamp format (YYYY-MM-DD HH:MM:SS)
+#   - Ensure column names match exactly
+#   - Check for special characters
+
+# Issue: Very slow processing
+# Solution: Reduce batch size
+#   - Edit bulk_analysis.py
+#   - Increase time.sleep() value (line ~130)
+
+# Issue: Profit scores not matching
+# Solution: Check data format
+#   - Verify same candles are being used
+#   - Check timestamp precision
+#   - Ensure Profit uses same indicator parameters
+
+
+# ADVANCED: CUSTOM CONFIGURATION
+# ============================================================
+
+# To adjust tolerance for validation:
+# Edit compare_profit.py, line 23:
+#   self.tolerance = 2.0  # Change to desired percentage
+
+# To skip specific indicators:
+# Edit compare_profit.py, line 14:
+#   self.indicators = ['hfz', 'fbi', 'dtm', 'sda', 'mtv']
+#   # Remove any from this list to skip
+
+# To change output directory:
+# Edit bulk_analysis.py, RESULTS_DIR variable (line ~18)
+
+
+# PERFORMANCE METRICS
+# ============================================================
+
+# Processing speed (typical):
+# - 30 candles: ~10 seconds
+# - 100 candles: ~35 seconds
+# - 300 candles: ~100 seconds
+# - 1000 candles: ~330 seconds
+
+# Bottlenecks:
+# - API response time (1-2 seconds per candle)
+# - Disk I/O for CSV writing
+# - Network latency
+
+# To improve performance:
+# - Run analysis on same machine as Docker
+# - Increase API worker threads
+# - Use SSD for output directory
+
+
+# GET HELP
+# ============================================================
+
+# Check API logs:
+# docker-compose logs -f smc-api
+
+# Test API manually:
+# http://localhost:8000/docs (Swagger UI)
+# http://localhost:8000/health (Health check)
+
+# Review diagnostic:
+# .\venv\Scripts\python.exe diagnostic.py
+
+# Validate example data:
+# .\venv\Scripts\python.exe test_analysis.py

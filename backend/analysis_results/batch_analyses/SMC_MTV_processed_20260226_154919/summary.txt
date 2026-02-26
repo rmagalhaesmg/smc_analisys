@@ -1,0 +1,16 @@
+Analysis Summary
+================================================================================
+File: SMC_MTV_processed.csv
+Analyzed: 2 candles
+Date: 2026-02-26 15:49:19
+
+Score Statistics:
+  Min: 60.67
+  Max: 61.43
+  Avg: 61.05
+
+Indicator Averages:
+  HFZ: 36.13
+  FBI: 16.00
+  DTM: 100.00
+  SDA: 100.00

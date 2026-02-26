@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2026-02-26T18:49:18.937808",
+    "candle_timestamp": "2026-02-26 15:47:35",
+    "type": "neutral",
+    "price": 193740.0,
+    "score": 60.67255363239138,
+    "alert": false,
+    "warnings": [
+      "Volatilidade extrema"
+    ],
+    "regime": "Tendência",
+    "confluence_level": 0,
+    "confluence_score": 0.0,
+    "renko_suggestion": 600.0,
+    "session": "Fora de Horário",
+    "hfz_score": 35.18077914474924,
+    "fbi_score": 16.002419744916878,
+    "dtm_score": 100,
+    "sda_score": 100,
+    "mtv_score": 0,
+    "input": {
+      "timestamp": "2026-02-26 15:47:35",
+      "open": 194005.0,
+      "high": 195035.0,
+      "low": 192170.0,
+      "close": 193740.0,
+      "volume": 595055000000,
+      "trades": 5284321
+    }
+  },
+  {
+    "timestamp": "2026-02-26T18:49:19.008582",
+    "candle_timestamp": "2026-02-26 15:47:35",
+    "type": "neutral",
+    "price": 5144.0,
+    "score": 61.431507479054815,
+    "alert": false,
+    "warnings": [
+      "Volatilidade extrema"
+    ],
+    "regime": "Tendência",
+    "confluence_level": 0,
+    "confluence_score": 0.0,
+    "renko_suggestion": 600.0,
+    "session": "Fora de Horário",
+    "hfz_score": 37.07876869763703,
+    "fbi_score": 16.000000000000004,
+    "dtm_score": 100,
+    "sda_score": 100,
+    "mtv_score": 0,
+    "input": {
+      "timestamp": "2026-02-26 15:47:35",
+      "open": 5133.0,
+      "high": 5168.5,
+      "low": 5123.0,
+      "close": 5144.0,
+      "volume": 120297000000,
+      "trades": 547899
+    }
+  }
+]
