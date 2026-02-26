@@ -131,7 +131,8 @@ class APIIngester:
         try:
             import aiohttp
             
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(endpoint, params=params) as response:
                     if response.status == 200:
                         data = await response.json()

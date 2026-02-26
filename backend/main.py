@@ -4,12 +4,15 @@ Integra todos os módulos: SMC, Notificações, Ingestão de Dados, IA/ML
 """
 import asyncio
 import logging
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Dict, Optional
+
+# prometheus metrics
+from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 from app.config import settings
 from app.modules import HFZModule, FBIModule, DTMModule, SDAModule, MTVModule
@@ -46,6 +49,14 @@ dtm = DTMModule()
 sda = SDAModule()
 mtv = MTVModule()
 
+# fila de processamento de candles
+candle_queue: asyncio.Queue = asyncio.Queue()
+
+# métricas Prometheus
+REQUEST_COUNT = Counter('smc_requests_total', 'Total HTTP requests', ['method','endpoint'])
+CANDLES_PROCESSED = Counter('smc_candles_processed_total', 'Candles processados com sucesso')
+QUEUE_SIZE = Gauge('smc_candle_queue_size', 'Tamanho atual da fila de candles')
+
 
 # Modelo Pydantic para validação de candles
 class Candle(BaseModel):
@@ -61,6 +72,21 @@ class Candle(BaseModel):
 
     class Config:
         extra = "ignore"
+
+class APIStreamRequest(BaseModel):
+    endpoint: str
+    params: Optional[Dict] = {}
+
+class NotificationConfig(BaseModel):
+    telegram_token: Optional[str] = None
+    telegram_chat_ids: Optional[List[str]] = None
+    email_to: Optional[List[str]] = None
+    sendgrid_key: Optional[str] = None
+    twilio_sid: Optional[str] = None
+    whatsapp_numbers: Optional[List[str]] = None
+
+class NotificationTestRequest(BaseModel):
+    channels: Optional[List[str]] = None
 
 
 class SMCAnalyzer:
@@ -303,6 +329,12 @@ analyzer = SMCAnalyzer()
 # ROTAS DA API
 # ============================================================================
 
+@app.middleware("http")
+async def prom_middleware(request, call_next):
+    REQUEST_COUNT.labels(request.method, request.url.path).inc()
+    response = await call_next(request)
+    return response
+
 @app.get("/")
 async def root():
     """Raiz da API"""
@@ -311,6 +343,11 @@ async def root():
         "version": settings.APP_VERSION,
         "status": "running"
     }
+
+@app.get("/metrics")
+async def metrics():
+    """Endpoint de métricas Prometheus"""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")
@@ -331,9 +368,10 @@ async def health_check():
 
 @app.post("/analyze/candle")
 async def analyze_candle(candle: Candle):
-    """Analisa um candle individual"""
-    result = await analyzer.process_candle(candle.dict())
-    return result
+    """Enfileira candle para processamento (não bloqueante)"""
+    await candle_queue.put(candle.dict())
+    QUEUE_SIZE.set(candle_queue.qsize())
+    return {"status": "queued"}
 
 
 @app.post("/data/upload-csv")
@@ -380,10 +418,10 @@ async def upload_csv(file: UploadFile = File(...), background_tasks: BackgroundT
 
 
 @app.post("/data/api-stream")
-async def api_stream(endpoint: str, params: Dict = None):
+async def api_stream(req: APIStreamRequest):
     """Conecta a uma API externa e processa dados em tempo real"""
     try:
-        result = await data_ingestion_manager.ingest_api(endpoint, params or {})
+        result = await data_ingestion_manager.ingest_api(req.endpoint, req.params or {})
         return result
     except Exception as e:
         return JSONResponse(
@@ -393,7 +431,7 @@ async def api_stream(endpoint: str, params: Dict = None):
 
 
 @app.post("/notifications/configure")
-async def configure_notifications(config: Dict):
+async def configure_notifications(config: NotificationConfig):
     """Configura canais de notificação em runtime
     Nota: não muta 'settings', usa um objeto dedicado.
     """
@@ -432,7 +470,8 @@ async def configure_notifications(config: Dict):
 
 
 @app.post("/notifications/test")
-async def test_notifications(channels: List[str] = None):
+async def test_notifications(body: NotificationTestRequest):
+    channels = body.channels
     """Testa envio de notificações"""
     test_alert = {
         'type': 'test',
@@ -494,13 +533,10 @@ async def get_settings():
 # ============================================================================
 
 async def _process_candles_batch(candles: List[Dict]) -> None:
-    """Processa lote de candles em background"""
+    """Enfileira lote de candles para processamento"""
     for candle in candles:
-        try:
-            await analyzer.process_candle(candle)
-            await asyncio.sleep(0.01)  # Pequeno delay para não sobrecarregar
-        except Exception as e:
-            logger.error(f"Erro ao processar candle: {str(e)}")
+        await candle_queue.put(candle)
+        QUEUE_SIZE.set(candle_queue.qsize())
 
 
 @app.on_event("startup")
@@ -508,11 +544,33 @@ async def startup_event():
     """Executado ao iniciar a aplicação"""
     logger.info(f"Iniciando {settings.APP_NAME} v{settings.APP_VERSION}")
     
+    # criar tabelas de persistência se necessário
+    try:
+        from app import db
+    except ImportError:
+        pass
+    
     # Treinar modelo ML se houver dados
     if len(ml_engine.historical_signals) > 10:
         await asyncio.to_thread(ml_engine.train_model)
     
+    # iniciar worker de candles
+    asyncio.create_task(candle_worker())
     logger.info("Aplicação iniciada com sucesso")
+
+
+async def candle_worker():
+    """Worker que consome a fila de candles"""
+    while True:
+        candle = await candle_queue.get()
+        try:
+            await analyzer.process_candle(candle)
+            CANDLES_PROCESSED.inc()
+        except Exception as e:
+            logger.error(f"Erro no candle_worker: {str(e)}")
+        finally:
+            candle_queue.task_done()
+            QUEUE_SIZE.set(candle_queue.qsize())
 
 
 if __name__ == "__main__":
