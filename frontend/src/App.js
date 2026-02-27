@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, CartesianGrid
 } from "recharts";
 import {
-  Activity, Bell, Settings, TrendingUp,
+  Activity, TrendingUp,
   AlertTriangle, CheckCircle
 } from "lucide-react";
 import axios from "axios";
