@@ -138,15 +138,22 @@ class MachineLearningEngine:
         self.model = None
     
     def add_signal(self, signal: Dict) -> None:
-        """Adiciona sinal ao histórico (com tamanho limitado)"""
-        self.historical_signals.append({
+        """Adiciona sinal ao histórico (com tamanho limitado) e persiste"""
+        record = {
             'timestamp': datetime.now().isoformat(),
             **signal
-        })
+        }
+        self.historical_signals.append(record)
         # manter buffer de tamanho limitado para evitar consumo infinito
         max_history = 5000
         if len(self.historical_signals) > max_history:
             self.historical_signals.pop(0)
+        # persistir em banco
+        try:
+            from app import db
+            db.save_signal(record)
+        except ImportError:
+            pass
     
     def add_outcome(self, signal_id: str, outcome: Dict) -> None:
         """Adiciona resultado de sinal"""
