@@ -1,11 +1,9 @@
 /**
- * Main App Component
- * Versão profissional com todos os 10 componentes
- * Tema customizado para brand SMC Analysis
+ * Advanced App with All Components
+ * Exemplo completo de como integrar todos os 10 componentes
  */
 
 import { useState, useEffect } from 'react';
-import { COLORS } from './theme';
 import LoginComponent from './components/LoginComponent';
 import TradingComponent from './components/TradingComponent';
 import SignalsComponent from './components/SignalsComponent';
@@ -28,10 +26,11 @@ const APP_PAGES = {
   ACCOUNT: 'account',
 };
 
-function App() {
+function AppAdvanced() {
   const [currentPage, setCurrentPage] = useState(APP_PAGES.DASHBOARD);
-  const userEmail =
-    localStorage.getItem('userEmail') || 'User';
+  const [userEmail, setUserEmail] = useState(
+    localStorage.getItem('userEmail') || 'User'
+  );
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem('token')
   );
@@ -75,40 +74,40 @@ function App() {
         return (
           <div
             style={{
-              background: COLORS.bgSecondary,
+              background: '#1a1a2e',
               borderRadius: '12px',
               padding: '30px',
               margin: '20px',
-              color: COLORS.textPrimary,
+              color: '#fff',
             }}
           >
-            <h2 style={{ color: COLORS.primary, marginBottom: '20px' }}>
+            <h2 style={{ color: '#00d4ff', marginBottom: '20px' }}>
               👤 Minha Conta
             </h2>
             <div
               style={{
-                background: COLORS.bgPrimary,
+                background: '#0f0f1a',
                 padding: '20px',
                 borderRadius: '8px',
-                border: `1px solid ${COLORS.border}`,
+                border: '1px solid #333',
               }}
             >
               <p>
                 <strong>Email:</strong> {userEmail}
               </p>
               <p>
-                <strong>Status:</strong> <span style={{ color: COLORS.success }}>✓ Ativo</span>
+                <strong>Status:</strong> <span style={{ color: '#00ff88' }}>✓ Ativo</span>
               </p>
               <p>
-                <strong>Plano:</strong> <span style={{ color: COLORS.warning }}>Premium</span>
+                <strong>Plano:</strong> <span style={{ color: '#ffd700' }}>Premium</span>
               </p>
               <button
                 onClick={handleLogout}
                 style={{
                   marginTop: '20px',
                   padding: '10px 20px',
-                  background: COLORS.danger,
-                  color: COLORS.textPrimary,
+                  background: '#ff6b6b',
+                  color: '#fff',
                   border: 'none',
                   borderRadius: '5px',
                   fontWeight: 'bold',
@@ -140,14 +139,14 @@ function App() {
   const containerStyle = {
     display: 'flex',
     minHeight: '100vh',
-    background: COLORS.bgPrimary,
-    color: COLORS.textPrimary,
+    background: '#0f0f1a',
+    color: '#fff',
   };
 
   const sidebarStyle = {
     width: sidebarOpen ? '250px' : '70px',
-    background: COLORS.bgSecondary,
-    borderRight: `1px solid ${COLORS.border}`,
+    background: '#1a1a2e',
+    borderRight: '1px solid #333',
     padding: '20px',
     transition: 'width 0.3s ease',
     display: 'flex',
@@ -158,7 +157,7 @@ function App() {
   const logoStyle = {
     fontSize: '24px',
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: '#00d4ff',
     marginBottom: '30px',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
@@ -168,9 +167,9 @@ function App() {
   const navItemStyle = (isActive) => ({
     padding: '12px',
     margin: '8px 0',
-    background: isActive ? COLORS.primaryDark : 'transparent',
-    color: isActive ? COLORS.primary : COLORS.textSecondary,
-    border: isActive ? `1px solid ${COLORS.primary}` : `1px solid ${COLORS.border}`,
+    background: isActive ? '#0f4c75' : 'transparent',
+    color: isActive ? '#00d4ff' : '#888',
+    border: isActive ? '1px solid #00d4ff' : '1px solid #333',
     borderRadius: '5px',
     cursor: 'pointer',
     display: 'flex',
@@ -188,8 +187,8 @@ function App() {
   };
 
   const headerStyle = {
-    background: COLORS.bgSecondary,
-    borderBottom: `1px solid ${COLORS.border}`,
+    background: '#1a1a2e',
+    borderBottom: '1px solid #333',
     padding: '15px 30px',
     display: 'flex',
     justifyContent: 'space-between',
@@ -197,9 +196,9 @@ function App() {
   };
 
   const toggleButtonStyle = {
-    background: COLORS.primaryDark,
-    color: COLORS.primary,
-    border: `1px solid ${COLORS.primary}`,
+    background: '#0f4c75',
+    color: '#00d4ff',
+    border: '1px solid #00d4ff',
     borderRadius: '5px',
     padding: '8px 12px',
     cursor: 'pointer',
@@ -243,9 +242,9 @@ function App() {
           <div
             style={{
               paddingTop: '20px',
-              borderTop: `1px solid ${COLORS.border}`,
+              borderTop: '1px solid #333',
               fontSize: '12px',
-              color: COLORS.textSecondary,
+              color: '#888',
               textAlign: 'center',
             }}
           >
@@ -266,7 +265,7 @@ function App() {
             >
               {sidebarOpen ? '◀' : '▶'}
             </button>
-            <h1 style={{ margin: '0', color: COLORS.primary }}>
+            <h1 style={{ margin: '0', color: '#00d4ff' }}>
               {navItems.find((n) => n.page === currentPage)?.label ||
                 'Dashboard'}
             </h1>
@@ -274,7 +273,7 @@ function App() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: '0', fontSize: '12px', color: COLORS.textSecondary }}>
+              <p style={{ margin: '0', fontSize: '12px', color: '#888' }}>
                 Bem-vindo,
               </p>
               <p style={{ margin: '0', fontWeight: 'bold' }}>{userEmail}</p>
@@ -284,8 +283,8 @@ function App() {
               onClick={handleLogout}
               style={{
                 padding: '8px 16px',
-                background: COLORS.danger,
-                color: COLORS.textPrimary,
+                background: '#ff6b6b',
+                color: '#fff',
                 border: 'none',
                 borderRadius: '5px',
                 fontWeight: 'bold',
@@ -304,4 +303,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppAdvanced;
