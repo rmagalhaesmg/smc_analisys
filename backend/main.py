@@ -119,13 +119,34 @@ async def lifespan(app: FastAPI):
         frontend_url=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     )
     auth_engine = AuthEngine(auth_config)
-    # cria usuário padrão se nenhum existir (facilidade de teste)
+    # cria usuário padrão no engine em memória (legacy)
     try:
         if not auth_engine.users:
             auth_engine.register_user("admin", "admin", "admin@example.com")
-            logger.info("🚩 usuário padrão 'admin' criado (senha admin)")
+            logger.info("🚩 usuário padrão 'admin' criado (senha admin) [legacy]")
     except Exception:
         pass
+
+    # cria usuário padrão no banco de dados (novo JWT/SQL) se ainda não houver
+    from app.database import SessionLocal
+    from passlib.context import CryptContext
+    from app.auth.models import User
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    db = SessionLocal()
+    try:
+        if not db.query(User).first():
+            default = User(
+                email="admin@sql.local",
+                password_hash=pwd_ctx.hash("admin"),
+                is_active=True
+            )
+            db.add(default)
+            db.commit()
+            logger.info("🚩 default SQL user 'admin@sql.local' created (senha admin)")
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
 
     # Payment Engine
     pay_config = PaymentConfig(
