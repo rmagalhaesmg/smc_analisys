@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from uuid import uuid4
+import logging
+
 from .dependencies import get_db
 from .jwt import create_access_token
 from .models import User
@@ -40,12 +42,16 @@ def register(body: RegisterBody, db: Session = Depends(get_db)):
         db.rollback()
         logging.getLogger("smc.auth").exception("Erro ao registrar usuário")
         # fallback to in-memory engine if available
-        from ..main import auth_engine
+        # try to fall back to the in‑memory engine defined in main.py
         try:
-            auth_engine.register_user(body.email, body.password, body.email)
-            return {"email": body.email, "warning": "registered in memory due to db error"}
-        except Exception:
-            raise HTTPException(status_code=500, detail="falha ao criar usuário")
+            from backend import main as _main
+            auth_engine = getattr(_main, "auth_engine", None)
+            if auth_engine:
+                auth_engine.register_user(body.email, body.password, body.email)
+                return {"email": body.email, "warning": "registered in memory due to db error"}
+        except ImportError:
+            logging.getLogger("smc.auth").warning("could not import main.auth_engine for fallback")
+        raise HTTPException(status_code=500, detail="falha ao criar usuário")
     return {"email": user.email}
 
 
@@ -57,12 +63,15 @@ def login(body: LoginBody, db: Session = Depends(get_db)):
             raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
         access = create_access_token({"sub": str(user.id)})
         return {"access_token": access, "token_type": "bearer"}
-    # if DB lookup failed, try in-memory auth engine
-    from ..main import auth_engine
+    # if DB lookup failed, try the in‑memory auth engine
+    try:
+        from backend import main as _main
+        auth_engine = getattr(_main, "auth_engine", None)
+    except ImportError:
+        auth_engine = None
     if auth_engine:
         auth_res = auth_engine.authenticate_user(body.email, body.password)
         if auth_res.get("success"):
-            # generate JWT using email as subject (non-persistent IDs)
             access = create_access_token({"sub": body.email})
             return {"access_token": access, "token_type": "bearer"}
     raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
