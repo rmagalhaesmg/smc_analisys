@@ -204,3 +204,50 @@ export const useCheckout = () => {
 
   return { checkout, loading, error };
 };
+
+// ==================== Subscription Hooks ====================
+export const useSubscriptionStatus = () => {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await paymentAPI.getPaymentStatus();
+      setStatus(response.data);
+      return response.data;
+    } catch (err) {
+      setError(err.response?.data?.message || "Erro ao obter status");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { fetch, status, loading, error };
+};
+
+export const useCancelSubscription = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const cancel = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await paymentAPI.cancelPayment();
+      return response.data;
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Erro ao cancelar";
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { cancel, loading, error };
+};
