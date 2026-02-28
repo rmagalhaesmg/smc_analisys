@@ -2,7 +2,6 @@
  * Login Component
  * Exemplo de componente com autenticação
  */
-
 import { useState } from "react";
 import { useLogin } from "../hooks";
 
@@ -15,13 +14,14 @@ function LoginComponent() {
     e.preventDefault();
     try {
       const response = await login(email, password);
-      console.log("✅ Login bem-sucedido!", response);
-      localStorage.setItem("user_email", email);
-      alert("Login realizado com sucesso!");
-      // Aqui você pode redirecionar para o dashboard
-      // window.location.href = "/dashboard";
+      // access_token já foi salvo pelo hook useLogin
+      // salva também como 'token' que é o que App.js verifica
+      localStorage.setItem("token", response.access_token);
+      localStorage.setItem("userEmail", email);
+      // redireciona recarregando a página — App.js vai detectar o token
+      window.location.reload();
     } catch (err) {
-      console.error("❌ Erro de login:", error);
+      console.error("❌ Erro de login:", err);
     }
   };
 
@@ -63,7 +63,6 @@ function LoginComponent() {
       <h2 style={{ textAlign: "center", color: "#00d4ff", margin: "0 0 20px 0" }}>
         🔐 Login
       </h2>
-
       <form onSubmit={handleSubmit}>
         <div>
           <label style={{ display: "block", marginBottom: "5px" }}>Email:</label>
@@ -76,7 +75,6 @@ function LoginComponent() {
             style={inputStyle}
           />
         </div>
-
         <div>
           <label style={{ display: "block", marginBottom: "5px" }}>Senha:</label>
           <input
@@ -88,21 +86,15 @@ function LoginComponent() {
             style={inputStyle}
           />
         </div>
-
         {error && (
           <p style={{ color: "#ff6b6b", marginTop: "10px", textAlign: "center" }}>
             ❌ {error}
           </p>
         )}
-
         <button type="submit" style={buttonStyle} disabled={loading}>
           {loading ? "⏳ Entrando..." : "🚀 Entrar"}
         </button>
       </form>
-
-      <p style={{ textAlign: "center", marginTop: "20px", color: "#888" }}>
-        Teste: qualquer email/senha funciona em modo stub
-      </p>
     </div>
   );
 }
