@@ -12,3 +12,6 @@ alembic
 passlib[bcrypt]
 python-jose
 psycopg2-binary  # if using PostgreSQL/Railway
+stripe
+mercadopago
+pandas

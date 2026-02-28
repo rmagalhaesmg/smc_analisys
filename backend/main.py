@@ -20,6 +20,7 @@ from app.middleware.subscription_guard import SubscriptionGuard
 
 # make sure SQLAlchemy knows about the tables
 from app.auth import models  # noqa: F401
+from app.models import signal  # noqa: F401
 
 # ============================================================
 # IMPORTAR MÓDULOS SMC
@@ -154,6 +155,23 @@ app = FastAPI(
 # mount auth routes and global subscription guard
 app.include_router(auth_router, prefix="/auth")          # auth endpoints are now served by app/auth/router.py
 app.add_middleware(SubscriptionGuard)                      # blocks access when subscription inactive
+
+# include analysis endpoints under /analysis (guard applied automatically)
+from app.routes.analysis import router as analysis_router
+from app.routes.stats import router as stats_router
+from app.billing.router import router as billing_router
+from app.billing.webhooks import router as webhook_router
+
+app.include_router(analysis_router, prefix="/analysis")
+app.include_router(stats_router, prefix="/analysis")
+
+# billing
+app.include_router(billing_router, prefix="/billing")
+app.include_router(webhook_router, prefix="/billing/webhook")
+
+# ingestion endpoints (CSV upload/backtest)
+from app.ingestion.csv_upload import router as ingestion_router
+app.include_router(ingestion_router, prefix="/ingestion")
 
 app.add_middleware(
     CORSMiddleware,
