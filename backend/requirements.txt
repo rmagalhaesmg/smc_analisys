@@ -1,7 +1,14 @@
-fastapi
+﻿fastapi
 uvicorn[standard]
 python-dotenv
 pydantic
 aiofiles
 httpx
 python-multipart
+
+# persistence & auth
+SQLAlchemy
+alembic
+passlib[bcrypt]
+python-jose
+psycopg2-binary  # if using PostgreSQL/Railway
