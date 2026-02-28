@@ -111,6 +111,13 @@ async def lifespan(app: FastAPI):
         frontend_url=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     )
     auth_engine = AuthEngine(auth_config)
+    # cria usuário padrão se nenhum existir (facilidade de teste)
+    try:
+        if not auth_engine.users:
+            auth_engine.register_user("admin", "admin", "admin@example.com")
+            logger.info("🚩 usuário padrão 'admin' criado (senha admin)")
+    except Exception:
+        pass
 
     # Payment Engine
     pay_config = PaymentConfig(
