@@ -1,11 +1,10 @@
 import React from "react";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import { Link, useLocation } from "react-router-dom";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const router = useRouter();
-  const isLoginPage = router.pathname === '/login';
-  const isLandingPage = router.pathname === '/';
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
+  const isLandingPage = location.pathname === '/';
 
   // Landing page and login don't use sidebar
   if (isLandingPage || isLoginPage) {
@@ -34,20 +33,20 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             {[
-              { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-              { href: '/history', label: 'Histórico / Backtest', icon: '📈' },
-              { href: '/datasources', label: '📥 Fontes de Dados', icon: '📥' },
-              { href: '/alerts', label: 'Alertas', icon: '🔔' },
-              { href: '/assistant', label: 'Assistente IA', icon: '🤖' },
-              { href: '/reports', label: 'Relatórios', icon: '📄' },
-              { href: '/billing', label: 'Assinatura', icon: '💳' },
-              { href: '/settings', label: 'Configurações', icon: '⚙️' },
+              { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+              { to: '/history', label: 'Histórico / Backtest', icon: '📈' },
+              { to: '/datasources', label: '📥 Fontes de Dados', icon: '📥' },
+              { to: '/alerts', label: 'Alertas', icon: '🔔' },
+              { to: '/assistant', label: 'Assistente IA', icon: '🤖' },
+              { to: '/reports', label: 'Relatórios', icon: '📄' },
+              { to: '/billing', label: 'Assinatura', icon: '💳' },
+              { to: '/settings', label: 'Configurações', icon: '⚙️' },
             ].map((item) => {
-              const isActive = router.pathname === item.href;
+              const isActive = location.pathname === item.to;
               return (
-                <li key={item.href}>
+              <li key={item.to}>
                   <Link
-                    href={item.href}
+                    to={item.to}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive
                         ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'

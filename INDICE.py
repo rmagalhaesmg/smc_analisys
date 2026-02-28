@@ -202,7 +202,7 @@ Roadmap futuro                 → RESUMO_EXECUTIVO.py          → "Roadmap"
 
 """
 1️⃣  AGORA (Próximos 5 min):
-    Abrir PowerShell na pasta: c:\Users\Usuário\Documents\smc_analysys\backend
+    Abrir PowerShell na pasta: c:/Users/Usuário/Documents/smc_analysys/backend
     Executar: .\\run.bat
     Aguardar: "Uvicorn running on http://127.0.0.1:8000"
 

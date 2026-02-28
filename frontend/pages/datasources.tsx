@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import Sidebar from '../components/Sidebar';
 
@@ -120,7 +120,7 @@ export default function DataSources() {
                     <span className="px-3 py-2 bg-gray-700 text-cyan-400 rounded-lg text-sm">CSV</span>
                     <span className="px-3 py-2 bg-gray-700 text-cyan-400 rounded-lg text-sm">RTD</span>
                     <span className="px-3 py-2 bg-gray-700 text-cyan-400 rounded-lg text-sm">DLL</span>
-                    <span className="px-3 py-2 bg-cyan-400-gray-700 text rounded-lg text-sm">API</span>
+                    <span className="px-3 py-2 bg-gray-700 text-cyan-400 rounded-lg text-sm">API</span>
                   </div>
                   <span className="text-gray-500">→</span>
                   <div className="px-3 py-2 bg-gray-700 text-yellow-400 rounded-lg text-sm">Normalização</div>

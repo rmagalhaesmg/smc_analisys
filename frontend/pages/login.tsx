@@ -1,18 +1,18 @@
-import { useState } from "react";
-import { useRouter } from "next/router";
-import api from "../src/api"; // assuming api wrapper exists or adapt path
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../src/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const res = await api.post("/auth/login", { email, password });
       localStorage.setItem("token", res.data.access_token);
-      router.push("/dashboard");
+      navigate("/dashboard");
     } catch (err) {
       console.error(err);
       alert("Falha no login");

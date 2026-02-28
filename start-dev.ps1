@@ -13,14 +13,8 @@ if (-not (Test-Path ".\frontend") -or -not (Test-Path ".\backend")) {
 
 Write-Host "`n[1/2] Iniciando Backend (http://127.0.0.1:8000)..." -ForegroundColor Blue
 
-# Iniciar Backend em uma nova janela
-$backendCmd = {
-    Set-Location backend
-    Write-Host "🔧 Backend iniciando..." -ForegroundColor Yellow
-    & .\..\\.venv\Scripts\python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
-}
-
-Start-Process -FilePath pwsh -ArgumentList "-NoExit", "-Command", $backendCmd -WindowTitle "SMC Backend"
+# Iniciar Backend em uma nova janela do cmd
+Start-Process cmd -ArgumentList "/K", "cd /d c:\Users\Usuário\Documents\smc_analysys\backend && .venv\Scripts\python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000" 
 Write-Host "✅ Backend iniciado" -ForegroundColor Green
 
 # Aguardar um pouco para o backend iniciar
@@ -28,14 +22,8 @@ Start-Sleep -Seconds 3
 
 Write-Host "`n[2/2] Iniciando Frontend (http://localhost:3000)..." -ForegroundColor Blue
 
-# Iniciar Frontend em uma nova janela
-$frontendCmd = {
-    Set-Location frontend
-    Write-Host "⚡ Frontend iniciando..." -ForegroundColor Yellow
-    npm start
-}
-
-Start-Process -FilePath pwsh -ArgumentList "-NoExit", "-Command", $frontendCmd -WindowTitle "SMC Frontend"
+# Iniciar Frontend em uma nova janela do cmd
+Start-Process cmd -ArgumentList "/K", "cd /d c:\Users\Usuário\Documents\smc_analysys\frontend && npm start"
 Write-Host "✅ Frontend iniciado" -ForegroundColor Green
 
 Write-Host "`n==========================================" -ForegroundColor Green
@@ -49,10 +37,8 @@ Write-Host "  API Docs:        http://127.0.0.1:8000/docs" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "💡 Dicas:" -ForegroundColor Yellow
 Write-Host "  • Frontend e Backend abriram em janelas separadas"
-Write-Host "  • Feche as janelas para parar o serviço"
+Write-Host "  • Feche as janelas para parar o servico"
 Write-Host "  • Verificar arquivo INTEGRACAO_FRONTEND.md para mais detalhes"
 Write-Host ""
 
-# Deixar prompt aberto
-Write-Host "✨ Aguardando... (Pressione Ctrl+C para sair)" -ForegroundColor Green
-Read-Host "Pressione Enter para continuar"
+Write-Host "✨ Concluido!" -ForegroundColor Green

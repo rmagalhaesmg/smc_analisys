@@ -14,7 +14,7 @@ Use este checklist para colocar o SMC Web App em produção.
    → Deve retornar Python 3.10+
 
 □ 1.2 Clonar/extrair projeto
-   → Já está em: c:\Users\Usuário\Documents\smc_analysys
+   → Já está em: c:/Users/Usuário/Documents/smc_analysys
    → Verificar que existe pasta: backend/
 
 □ 1.3 Executar instalação
@@ -28,7 +28,7 @@ Use este checklist para colocar o SMC Web App em produção.
    → Acessar docs: http://localhost:8000/docs
 
 □ 1.5 Criar arquivo .env
-   → Copiar backend\.env.example → backend\.env
+   → Copiar backend\\.env.example → backend\\.env
    → Editar arquivo conforme seção abaixo
 """
 
@@ -345,7 +345,7 @@ Para colocar o sistema 24/7 (sem deixar PowerShell aberto):
    → Extrair e colocar nssm.exe no PATH
    → Digitar em PowerShell (Admin):
    
-   nssm install SMCWebApp "C:\Python310\python.exe" \\
+   nssm install SMCWebApp "C:/Python310/python.exe" ^
      "-m uvicorn main:app --host 0.0.0.0 --port 8000"
    
    nssm start SMCWebApp
