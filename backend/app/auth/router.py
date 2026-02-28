@@ -25,22 +25,44 @@ class LoginBody(BaseModel):
 
 @router.post("/register")
 def register(body: RegisterBody, db: Session = Depends(get_db)):
+    # guard against duplicate
     if db.query(User).filter(User.email == body.email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
     user = User(
         email=body.email,
         password_hash=pwd_context.hash(body.password)
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        logging.getLogger("smc.auth").exception("Erro ao registrar usuário")
+        # fallback to in-memory engine if available
+        from ..main import auth_engine
+        try:
+            auth_engine.register_user(body.email, body.password, body.email)
+            return {"email": body.email, "warning": "registered in memory due to db error"}
+        except Exception:
+            raise HTTPException(status_code=500, detail="falha ao criar usuário")
     return {"email": user.email}
 
 
 @router.post("/login")
 def login(body: LoginBody, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == body.email).first()
-    if not user or not pwd_context.verify(body.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
-    access = create_access_token({"sub": str(user.id)})
-    return {"access_token": access, "token_type": "bearer"}
+    if user:
+        if not pwd_context.verify(body.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
+        access = create_access_token({"sub": str(user.id)})
+        return {"access_token": access, "token_type": "bearer"}
+    # if DB lookup failed, try in-memory auth engine
+    from ..main import auth_engine
+    if auth_engine:
+        auth_res = auth_engine.authenticate_user(body.email, body.password)
+        if auth_res.get("success"):
+            # generate JWT using email as subject (non-persistent IDs)
+            access = create_access_token({"sub": body.email})
+            return {"access_token": access, "token_type": "bearer"}
+    raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")

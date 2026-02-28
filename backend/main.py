@@ -129,10 +129,20 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    # create SQL tables (works with SQLite or Postgres); alembic is recommended
-    from app.database import SessionLocal, engine, Base
+    # make sure SQLite directory exists when using local file
+    from app.database import SessionLocal, engine, Base, DATABASE_URL
     from app.auth.models import User, Subscription
     from app.models.signal import Signal
+
+    if DATABASE_URL.startswith("sqlite"):
+        path = DATABASE_URL.replace("sqlite://", "")
+        dirpath = os.path.dirname(path)
+        if dirpath and not os.path.exists(dirpath):
+            try:
+                os.makedirs(dirpath, exist_ok=True)
+                logger.info(f"✅ Criado diretório de banco de dados: {dirpath}")
+            except Exception as e:
+                logger.warning(f"falha ao criar diretório de banco de dados {dirpath}: {e}")
 
     Base.metadata.create_all(bind=engine)
 
