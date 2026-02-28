@@ -158,8 +158,16 @@ async def lifespan(app: FastAPI):
                 is_active=True
             )
             db.add(default)
+            db.flush()
+            # create an active subscription so SubscriptionGuard lets the admin through
+            admin_sub = Subscription(
+                user_id=default.id,
+                plan="admin",
+                status="active",
+            )
+            db.add(admin_sub)
             db.commit()
-            logger.info("🚩 default SQL user 'admin@sql.local' created (senha admin)")
+            logger.info("🚩 default SQL user 'admin@sql.local' created with active subscription (senha admin)")
     except Exception:
         db.rollback()
     finally:
