@@ -41,6 +41,9 @@ def register(body: RegisterBody, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         logging.getLogger("smc.auth").exception("Erro ao registrar usuário")
+        # if DEBUG environment variable set, expose exception message in response
+        if os.getenv("DEBUG", "false").lower() == "true":
+            raise HTTPException(status_code=500, detail=f"falha ao criar usuário: {e}")
         # fallback to in-memory engine if available
         # try to fall back to the in‑memory engine defined in main.py
         try:
