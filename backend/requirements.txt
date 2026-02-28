@@ -15,3 +15,4 @@ psycopg2-binary  # if using PostgreSQL/Railway
 stripe
 mercadopago
 pandas
+bcrypt==4.0.1
