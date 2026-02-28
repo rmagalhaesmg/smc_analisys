@@ -1,8 +1,9 @@
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.auth.jwt import verify_token
-from app.auth.models import User
+from ..database import get_db
+from .jwt import verify_token
+from .models import User
+import uuid
 
 
 def get_current_user(
@@ -15,7 +16,13 @@ def get_current_user(
     payload = verify_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
-    user = db.query(User).filter(User.id == payload.get("sub")).first()
+    # token `sub` is stored as string; convert to UUID for DB queries
+    try:
+        user_id = uuid.UUID(payload.get("sub"))
+    except Exception:
+        raise HTTPException(status_code=401, detail="Usuário inválido")
+
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
     return user

@@ -61,6 +61,8 @@ async def lifespan(app: FastAPI):
     global smc_engine, alert_engine, ai_engine, auth_engine, payment_engine
 
     logger.info("🚀 Iniciando SMC SaaS Backend...")
+    # record start time for health checks
+    app.state.start_time = datetime.now(timezone.utc)
 
     # Core Engine (WIN, 5min, modo profissional)
     smc_engine = SMCCoreEngine(
@@ -127,10 +129,15 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    # cria usuário padrão no banco de dados (novo JWT/SQL) se ainda não houver
-    from app.database import SessionLocal
+    # create SQL tables (works with SQLite or Postgres); alembic is recommended
+    from app.database import SessionLocal, engine, Base
+    from app.auth.models import User, Subscription
+    from app.models.signal import Signal
+
+    Base.metadata.create_all(bind=engine)
+
+    # then ensure a default SQL user exists
     from passlib.context import CryptContext
-    from app.auth.models import User
     pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     db = SessionLocal()
     try:
@@ -157,6 +164,8 @@ async def lifespan(app: FastAPI):
         modo_simulacao=os.getenv("PAYMENT_SIM", "true").lower() == "true"
     )
     payment_engine = PaymentEngine(pay_config)
+    # expose for router helpers
+    app.state.payment_engine = payment_engine
 
     logger.info("✅ Todos os módulos inicializados")
     yield
@@ -172,6 +181,15 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# simple health check -- public
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "uptime_seconds": (datetime.now(timezone.utc) - app.state.start_time).total_seconds(),
+        "version": "1.0.0"
+    }
 
 # mount auth routes and global subscription guard
 app.include_router(auth_router, prefix="/auth")          # auth endpoints are now served by app/auth/router.py

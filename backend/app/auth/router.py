@@ -3,9 +3,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from uuid import uuid4
-from app.auth.dependencies import get_db
-from app.auth.jwt import create_access_token
-from app.auth.models import User
+from .dependencies import get_db
+from .jwt import create_access_token
+from .models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

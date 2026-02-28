@@ -8,7 +8,7 @@ import logging
 from typing import Dict, List, Optional
 from datetime import datetime
 import numpy as np
-from app.config import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 

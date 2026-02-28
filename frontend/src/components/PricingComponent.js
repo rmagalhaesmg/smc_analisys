@@ -15,12 +15,14 @@ function PricingComponent() {
     fetchPlans();
   }, [fetchPlans]);
 
+  const [gateway, setGateway] = useState("stripe");
+
   const handleCheckout = async (planId) => {
     try {
-      const result = await checkout(planId);
+      const result = await checkout(planId, gateway);
       console.log("✅ Checkout iniciado:", result);
       alert("Redirecionando para pagamento...");
-      // Aqui você faria: window.location.href = result.checkout_url
+      // window.location.href = result.url || result.checkout_url;
     } catch (err) {
       console.error("❌ Erro no checkout:", checkoutError);
     }
@@ -126,6 +128,27 @@ function PricingComponent() {
         <h1 style={titleStyle}>💰 Nossos Planos</h1>
         <h2 style={subtitleStyle}>Escolha o plano ideal para você</h2>
 
+        {/* gateway selector */}
+        <div style={{ marginBottom: "20px", textAlign: "center" }}>
+          <label style={{ marginRight: "10px" }}>
+            <input
+              type="radio"
+              value="stripe"
+              checked={gateway === "stripe"}
+              onChange={() => setGateway("stripe")}
+            />
+            Stripe
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="mp"
+              checked={gateway === "mp"}
+              onChange={() => setGateway("mp")}
+            />
+            MercadoPago
+          </label>
+        </div>
         {/* Plans Grid */}
         <div style={plansGridStyle}>
           {plans.length > 0 ? (

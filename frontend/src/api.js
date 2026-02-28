@@ -75,12 +75,12 @@ export const aiAPI = {
 
 // ==================== Payment API ====================
 export const paymentAPI = {
-  getPlans: () => apiClient.get("/api/planos"),
-  checkout: (planId) => apiClient.post("/api/pagamento/checkout", { plan_id: planId }),
-  getPaymentStatus: () => apiClient.get("/api/pagamento/status"),
-  getPaymentHistory: () => apiClient.get("/api/pagamento/historico"),
-  cancelPayment: (paymentId) =>
-    apiClient.post("/api/pagamento/cancelar", { payment_id: paymentId }),
+  getPlans: () => apiClient.get("/billing/plans"),
+  checkout: (planId, gateway = "stripe") =>
+    apiClient.post(`/billing/checkout/${gateway}`, { plan: planId }),
+  getPaymentStatus: () => apiClient.get("/billing/status"),
+  getPaymentHistory: () => apiClient.get("/billing/history"), // may need backend route later
+  cancelPayment: () => apiClient.post("/billing/cancel"),
 };
 
 // ==================== System API ====================

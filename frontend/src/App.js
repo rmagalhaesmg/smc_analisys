@@ -15,6 +15,116 @@ import AIChat from './components/AIChat';
 import TradeHistory from './components/TradeHistory';
 import ReportsAnalytics from './components/ReportsAnalytics';
 import DashboardExample from './DashboardExample';
+import { useSubscriptionStatus, useCancelSubscription } from './hooks';
+
+// account page component used inside main App
+function AccountPage({ userEmail, handleLogout }) {
+  const { fetch, status, loading, error } = useSubscriptionStatus();
+  const { cancel, loading: cancelLoading } = useCancelSubscription();
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return (
+    <div
+      style={{
+        background: COLORS.bgSecondary,
+        borderRadius: '12px',
+        padding: '30px',
+        margin: '20px',
+        color: COLORS.textPrimary,
+      }}
+    >
+      <h2 style={{ color: COLORS.primary, marginBottom: '20px' }}>
+        👤 Minha Conta
+      </h2>
+      <div
+        style={{
+          background: COLORS.bgPrimary,
+          padding: '20px',
+          borderRadius: '8px',
+          border: `1px solid ${COLORS.border}`,
+        }}
+      >
+        <p>
+          <strong>Email:</strong> {userEmail}
+        </p>
+        <p>
+          <strong>Status:</strong>{' '}
+          {loading ? (
+            '⏳ Carregando...'
+          ) : status?.ativa ? (
+            <span style={{ color: COLORS.success }}>✓ Ativo</span>
+          ) : (
+            <span style={{ color: COLORS.danger }}>✗ Inativo</span>
+          )}
+        </p>
+        {status && status.plan && (
+          <p>
+            <strong>Plano:</strong>{' '}
+            <span style={{ color: COLORS.warning }}>{status.plan}</span>
+          </p>
+        )}
+        {status && status.expires_at && (
+          <>
+            <p>
+              <strong>Expira em:</strong>{' '}
+              {new Date(status.expires_at).toLocaleString()}
+            </p>
+            {status.days_remaining !== undefined && (
+              <p>
+                <strong>Dias restantes:</strong>{' '}
+                {status.days_remaining}
+              </p>
+            )}
+          </>
+        )}
+
+        {error && (
+          <p style={{ color: COLORS.danger }}>Erro: {error}</p>
+        )}
+
+        <div style={{ marginTop: '20px' }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '10px 20px',
+              background: COLORS.danger,
+              color: COLORS.textPrimary,
+              border: 'none',
+              borderRadius: '5px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              marginRight: '10px',
+            }}
+          >
+            Logout
+          </button>
+          {status?.ativa && (
+            <button
+              onClick={() => cancel().then(() => fetch())}
+              style={{
+                padding: '10px 20px',
+                background: COLORS.warning,
+                color: COLORS.textPrimary,
+                border: 'none',
+                borderRadius: '5px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+              disabled={cancelLoading}
+            >
+              {cancelLoading ? '⏳ Cancelando...' : 'Cancelar Assinatura'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 const APP_PAGES = {
   DASHBOARD: 'dashboard',
@@ -72,54 +182,7 @@ function App() {
       case APP_PAGES.PRICING:
         return <PricingComponent />;
       case APP_PAGES.ACCOUNT:
-        return (
-          <div
-            style={{
-              background: COLORS.bgSecondary,
-              borderRadius: '12px',
-              padding: '30px',
-              margin: '20px',
-              color: COLORS.textPrimary,
-            }}
-          >
-            <h2 style={{ color: COLORS.primary, marginBottom: '20px' }}>
-              👤 Minha Conta
-            </h2>
-            <div
-              style={{
-                background: COLORS.bgPrimary,
-                padding: '20px',
-                borderRadius: '8px',
-                border: `1px solid ${COLORS.border}`,
-              }}
-            >
-              <p>
-                <strong>Email:</strong> {userEmail}
-              </p>
-              <p>
-                <strong>Status:</strong> <span style={{ color: COLORS.success }}>✓ Ativo</span>
-              </p>
-              <p>
-                <strong>Plano:</strong> <span style={{ color: COLORS.warning }}>Premium</span>
-              </p>
-              <button
-                onClick={handleLogout}
-                style={{
-                  marginTop: '20px',
-                  padding: '10px 20px',
-                  background: COLORS.danger,
-                  color: COLORS.textPrimary,
-                  border: 'none',
-                  borderRadius: '5px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                }}
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        );
+        return <AccountPage userEmail={userEmail} handleLogout={handleLogout} />;
       default:
         return <DashboardExample />;
     }

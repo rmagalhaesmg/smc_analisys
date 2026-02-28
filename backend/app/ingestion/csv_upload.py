@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 import os, uuid
-from app.auth.dependencies import get_current_user
-from app.ingestion.replay_runner import run_replay
+from ..auth.dependencies import get_current_user
+from .replay_runner import run_replay
 
 router = APIRouter()
 

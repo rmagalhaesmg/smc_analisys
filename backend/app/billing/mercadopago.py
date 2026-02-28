@@ -1,6 +1,6 @@
 import mercadopago
 import os
-from app.billing.plans import PLANS
+from .plans import PLANS
 
 sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN", ""))
 

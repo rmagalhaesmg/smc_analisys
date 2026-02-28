@@ -1,6 +1,6 @@
 import stripe
 import os
-from app.billing.plans import PLANS
+from .plans import PLANS
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 

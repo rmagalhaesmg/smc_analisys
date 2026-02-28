@@ -1,5 +1,5 @@
 import pandas as pd
-from app.ingestion.schemas import ProfitCSVRow
+from .schemas import ProfitCSVRow
 
 def load_profit_csv(path: str):
     df = pd.read_csv(path)

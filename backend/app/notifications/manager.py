@@ -11,7 +11,7 @@ from telegram.error import TelegramError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content
 from twilio.rest import Client
-from app.config import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
