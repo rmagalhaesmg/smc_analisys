@@ -42,11 +42,11 @@ export const useLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const login = useCallback(async (username, password) => {
+  const login = useCallback(async (email, password) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authAPI.login(username, password);
+      const response = await authAPI.login(email, password);
       localStorage.setItem("access_token", response.data.access_token);
       return response.data;
     } catch (err) {

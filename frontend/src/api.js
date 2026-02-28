@@ -44,8 +44,8 @@ apiClient.interceptors.response.use(
 // ==================== Auth API ====================
 export const authAPI = {
   register: (data) => apiClient.post("/auth/register", data),
-  login: (username, password) =>
-    apiClient.post("/auth/login", { username, password }),
+  login: (email, password) =>
+    apiClient.post("/auth/login", { email, password }),
   refresh: () => apiClient.post("/auth/refresh"),
   verifyEmail: (token) => apiClient.get(`/auth/verify-email?token=${token}`),
   forgotPassword: (email) => apiClient.post("/auth/forgot-password", { email }),
