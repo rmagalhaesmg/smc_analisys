@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from uuid import uuid4
 import logging
+import os
 
 from .dependencies import get_db
 from .jwt import create_access_token

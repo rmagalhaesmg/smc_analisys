@@ -1,13 +1,23 @@
 """
 Configuração centralizada da aplicação SMC
 """
+try:
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+except ImportError:
+    from pydantic import BaseModel as BaseSettings
+    SettingsConfigDict = None
+from pydantic import Field
 import os
-from pydantic_settings import BaseSettings
-from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
     """Settings da aplicação"""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    ) if SettingsConfigDict else {}
     
     # Aplicação
     APP_NAME: str = "SMC - Sistema de Monitoramento Contínuo"
@@ -23,22 +33,22 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./smc.db"
     
     # Notificações - Telegram (strings vazias por padrão)
-    TELEGRAM_BOT_TOKEN: str = Field(default="", env="TELEGRAM_BOT_TOKEN")
-    TELEGRAM_CHAT_IDS: str = Field(default="", env="TELEGRAM_CHAT_IDS")
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_CHAT_IDS: str = ""
     
     # Notificações - Email (strings vazias por padrão)
-    SENDGRID_API_KEY: str = Field(default="", env="SENDGRID_API_KEY")
-    EMAIL_FROM: str = Field(default="noreply@smcanalysis.com", env="EMAIL_FROM")
-    EMAIL_TO_ADDRESSES: str = Field(default="", env="EMAIL_TO_ADDRESSES")
+    SENDGRID_API_KEY: str = ""
+    EMAIL_FROM: str = "noreply@smcanalysis.com"
+    EMAIL_TO_ADDRESSES: str = ""
     
     # Notificações - WhatsApp (strings vazias por padrão)
-    TWILIO_ACCOUNT_SID: str = Field(default="", env="TWILIO_ACCOUNT_SID")
-    TWILIO_AUTH_TOKEN: str = Field(default="", env="TWILIO_AUTH_TOKEN")
-    TWILIO_PHONE_NUMBER: str = Field(default="", env="TWILIO_PHONE_NUMBER")
-    WHATSAPP_NUMBERS: str = Field(default="", env="WHATSAPP_NUMBERS")
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+    WHATSAPP_NUMBERS: str = ""
     
     # OpenAI / LLM
-    OPENAI_API_KEY: str = Field(default="", env="OPENAI_API_KEY")
+    OPENAI_API_KEY: str = ""
     LLM_MODEL: str = "gpt-4"
     
     # Configuração de Ingestão de Dados
@@ -47,12 +57,12 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: int = 100
     
     # Parâmetros SMC - Carregáveis via .env
-    SMC_TIPO_ATIVO: int = Field(default=1, env="SMC_TIPO_ATIVO")  # 1=WIN, 2=WDO, 3=NASDAQ, 4=ES, 5=Ações, 6=Forex, 7=Cripto
-    SMC_TF_BASE_MINUTOS: int = Field(default=5, env="SMC_TF_BASE_MINUTOS")
-    SMC_MODO_OPERACAO: int = Field(default=2, env="SMC_MODO_OPERACAO")  # 1=Conservador, 2=Normal, 3=Agressivo
-    SMC_ALERTING_ENABLED: bool = Field(default=True, env="SMC_ALERTING_ENABLED")
-    SMC_ML_REFINEMENT: bool = Field(default=True, env="SMC_ML_REFINEMENT")
-    SMC_LLM_ANALYSIS: bool = Field(default=False, env="SMC_LLM_ANALYSIS")
+    SMC_TIPO_ATIVO: int = 1  # 1=WIN, 2=WDO, 3=NASDAQ, 4=ES, 5=Ações, 6=Forex, 7=Cripto
+    SMC_TF_BASE_MINUTOS: int = 5
+    SMC_MODO_OPERACAO: int = 2  # 1=Conservador, 2=Normal, 3=Agressivo
+    SMC_ALERTING_ENABLED: bool = True
+    SMC_ML_REFINEMENT: bool = True
+    SMC_LLM_ANALYSIS: bool = False
     
     # Parâmetros padrão SMC (legado)
     SMC_DEFAULT_PARAMS: dict = {
@@ -60,11 +70,6 @@ class Settings(BaseSettings):
         "tf_base_minutos": 5,
         "modo_operacao": 2,
     }
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"  # Permite campos extras sem erro
     
     # Helper methods para converter strings em listas
     def get_telegram_chat_ids(self) -> list:
