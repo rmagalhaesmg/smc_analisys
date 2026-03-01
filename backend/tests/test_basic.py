@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from fastapi.testclient import TestClient
-from backend.main import app  # Candle type was removed from main, tests just exercise endpoints
+from main import app  # Candle type was removed from main, tests just exercise endpoints
 
 client = TestClient(app)
 

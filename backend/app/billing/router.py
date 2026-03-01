@@ -43,7 +43,7 @@ def subscription_status(request: Request = None):
     if not user_id:
         raise HTTPException(status_code=401, detail="Token não fornecido")
     # import here to avoid circular
-    from backend.payment_engine import PaymentEngine
+    from payment_engine import PaymentEngine
     # we grab engine from app state? easier: reinstantiate with config from main?
     # but main already has global payment_engine; use it via request.app.state if set
     engine = getattr(request.app.state, "payment_engine", None)
@@ -59,7 +59,7 @@ def cancel_subscription(request: Request = None):
     user_id = payload.get("sub") if payload else None
     if not user_id:
         raise HTTPException(status_code=401, detail="Token não fornecido")
-    from backend.payment_engine import PaymentEngine
+    from payment_engine import PaymentEngine
     engine = getattr(request.app.state, "payment_engine", None)
     if engine is None:
         engine = PaymentEngine()
@@ -74,7 +74,7 @@ def payment_history(request: Request = None):
     user_id = payload.get("sub") if payload else None
     if not user_id:
         raise HTTPException(status_code=401, detail="Token não fornecido")
-    from backend.payment_engine import PaymentEngine
+    from payment_engine import PaymentEngine
     engine = getattr(request.app.state, "payment_engine", None)
     if engine is None:
         engine = PaymentEngine()

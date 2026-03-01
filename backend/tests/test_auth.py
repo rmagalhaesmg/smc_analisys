@@ -11,9 +11,9 @@ import app.auth.router as auth_module2
 auth_module2.pwd_context = auth_module.pwd_context
 
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.app.database import Base, engine, SessionLocal
-from backend.app.auth.models import User
+from main import app
+from app.database import Base, engine, SessionLocal
+from app.auth.models import User
 
 client = TestClient(app)
 

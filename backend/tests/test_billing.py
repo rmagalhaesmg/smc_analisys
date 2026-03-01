@@ -3,9 +3,9 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.app.database import Base, engine
-from backend.app.auth.models import User
+from main import app
+from app.database import Base, engine
+from app.auth.models import User
 from passlib.context import CryptContext
 import os
 
@@ -65,7 +65,7 @@ def test_mp_checkout(monkeypatch):
 def test_stripe_webhook(monkeypatch):
     # simulate stripe signature verification and event payload
     token = get_token()
-    from backend.app.auth.jwt import verify_token
+    from app.auth.jwt import verify_token
     uid = verify_token(token)["sub"]
 
     event = {
@@ -85,8 +85,8 @@ def test_stripe_webhook(monkeypatch):
     assert resp.status_code == 200
 
     from uuid import UUID
-    from backend.app.database import SessionLocal
-    from backend.app.auth.models import Subscription
+    from app.database import SessionLocal
+    from app.auth.models import Subscription
 
     db = SessionLocal()
     uid_obj = UUID(uid)
@@ -113,15 +113,15 @@ def test_stripe_webhook(monkeypatch):
 
 def test_mp_webhook():
     token = get_token(email="mp2@example.com")
-    from backend.app.auth.jwt import verify_token
+    from app.auth.jwt import verify_token
     uid = verify_token(token)["sub"]
     payload = {"metadata": {"user_id": uid, "plan": "monthly"}}
     resp = client.post("/billing/webhook/mp", json=payload)
     assert resp.status_code == 200
 
     from uuid import UUID
-    from backend.app.database import SessionLocal
-    from backend.app.auth.models import Subscription
+    from app.database import SessionLocal
+    from app.auth.models import Subscription
 
     db = SessionLocal()
     uid_obj = UUID(uid)
