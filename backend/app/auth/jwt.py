@@ -23,3 +23,8 @@ def verify_token(token: str):
         return payload
     except JWTError:
         return None
+
+
+def decode_token(token: str):
+    """Alias for verify_token - decodes and validates JWT token"""
+    return verify_token(token)

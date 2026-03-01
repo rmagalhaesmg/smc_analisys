@@ -219,6 +219,11 @@ from app.routes.stats import router as stats_router
 from app.billing.router import router as billing_router
 from app.billing.webhooks import router as webhook_router
 
+# WebSocket endpoints
+from app.websocket.routes import router as ws_router
+
+app.include_router(ws_router)
+
 app.include_router(analysis_router, prefix="/analysis")
 app.include_router(stats_router, prefix="/analysis")
 
