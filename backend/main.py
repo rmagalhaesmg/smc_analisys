@@ -235,6 +235,10 @@ app.include_router(webhook_router, prefix="/billing/webhook")
 from app.ingestion.csv_upload import router as ingestion_router
 app.include_router(ingestion_router, prefix="/ingestion")
 
+# Signals & Metrics endpoints
+from app.signals.manager import signal_manager
+from app.events.schema import SignalEvent, MetricsEvent
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],          # em prod: troque por seus domínios

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 import os, uuid
+import asyncio
 from ..auth.dependencies import get_current_user
-from .replay_runner import run_replay
+from .replay_runner import ReplayRunner
 
 router = APIRouter()
 
@@ -22,6 +23,23 @@ async def upload_csv(
     with open(path, "wb") as f:
         f.write(await file.read())
 
-    run_replay(path, user.id)
+    # TODO: Integração com o replay runner
+    # Por enquanto, apenas retorna o resultado do upload
+    # run_replay(path, user.id)
 
-    return {"status": "uploaded", "file_id": file_id}
+    return {"status": "uploaded", "file_id": file_id, "path": path}
+
+
+@router.post("/backtest")
+async def run_backtest(
+    file_id: str,
+    user=Depends(get_current_user)
+):
+    """Roda backtest com arquivo já carregado"""
+    path = os.path.join(UPLOAD_DIR, file_id)
+    
+    if not os.path.exists(path):
+        raise HTTPException(404, "Arquivo não encontrado")
+    
+    # TODO: Integrar com ReplayRunner
+    return {"status": "processing", "file_id": file_id}
