@@ -3,6 +3,12 @@ SMC SaaS - Backend Principal
 FastAPI + todos os módulos: Core Engine, Alerts, AI, Auth, Payments
 Deploy: Railway (ou qualquer servidor com Python 3.11+)
 """
+import sys
+import os
+
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
 import os
 import logging
@@ -25,11 +31,12 @@ from app.models import signal  # noqa: F401
 # ============================================================
 # IMPORTAR MÓDULOS SMC
 # ============================================================
-from core_engine import SMCCoreEngine, Bar
 from backend.alert_engine import AlertEngine, AlertConfig, TelegramConfig, EmailConfig, WhatsAppConfig
 from backend.ai_engine import AIEngine, AIConfig
 from backend.auth_engine import AuthEngine, AuthConfig
 from backend.payment_engine import PaymentEngine, PaymentConfig
+from backend.payment_engine import PLANOS
+from backend.core_engine import SMCCoreEngine, Bar
 
 # ============================================================
 # LOGGING
