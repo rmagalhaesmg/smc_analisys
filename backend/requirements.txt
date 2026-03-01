@@ -7,7 +7,7 @@ httpx
 python-multipart
 
 # persistence & auth
-SQLAlchemy
+SQLAlchemy>=2.0.35
 alembic
 passlib[bcrypt]
 python-jose

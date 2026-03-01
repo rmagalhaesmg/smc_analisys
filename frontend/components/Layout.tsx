@@ -21,7 +21,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-gray-800">
-          <Link href="/dashboard" className="flex items-center gap-3">
+        <Link to="/dashboard" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
               <span className="text-2xl">📊</span>
             </div>
