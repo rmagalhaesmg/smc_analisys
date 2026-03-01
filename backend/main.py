@@ -25,11 +25,11 @@ from app.models import signal  # noqa: F401
 # ============================================================
 # IMPORTAR MÓDULOS SMC
 # ============================================================
-from core_engine import SMCCoreEngine, Bar
-from alert_engine import AlertEngine, AlertConfig, TelegramConfig, EmailConfig, WhatsAppConfig
-from ai_engine import AIEngine, AIConfig
-from auth_engine import AuthEngine, AuthConfig
-from payment_engine import PaymentEngine, PaymentConfig
+from backend.core_engine import SMCCoreEngine, Bar
+from backend.alert_engine import AlertEngine, AlertConfig, TelegramConfig, EmailConfig, WhatsAppConfig
+from backend.ai_engine import AIEngine, AIConfig
+from backend.auth_engine import AuthEngine, AuthConfig
+from backend.payment_engine import PaymentEngine, PaymentConfig
 
 # ============================================================
 # LOGGING
@@ -451,7 +451,7 @@ def limpar_chat(user=Depends(get_current_user)):
 # ============================================================
 @app.get("/api/planos")
 def listar_planos():
-    from payment_engine import PLANOS
+    from backend.payment_engine import PLANOS
     return {"planos": [
         {"id": k, "nome": v["nome"], "preco": v["preco_brl"],
          "duracao_dias": v["duracao_dias"]}
