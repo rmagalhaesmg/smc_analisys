@@ -25,7 +25,7 @@ from app.models import signal  # noqa: F401
 # ============================================================
 # IMPORTAR MÓDULOS SMC
 # ============================================================
-from backend.core_engine import SMCCoreEngine, Bar
+from core_engine import SMCCoreEngine, Bar
 from backend.alert_engine import AlertEngine, AlertConfig, TelegramConfig, EmailConfig, WhatsAppConfig
 from backend.ai_engine import AIEngine, AIConfig
 from backend.auth_engine import AuthEngine, AuthConfig
